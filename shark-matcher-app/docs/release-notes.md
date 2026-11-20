@@ -2,7 +2,7 @@
 
 This is the first public source release of the Shark Matcher browser and data
 application. It is intended for use with the synchronized v1.0.0 release of
-`shark-matcher`.
+`shark-match-model`.
 
 ## Highlights
 
@@ -25,14 +25,14 @@ application. It is intended for use with the synchronized v1.0.0 release of
   schema migration; users must sign in again.
 - Browser sessions remain in the existing JavaScript-readable transport for
   V1, and cookie/CSRF migration is deferred work. Rendered values are
-  HTML-escaped, as item C8 of `docs/cache-audit.md` records.
+  HTML-escaped.
 - One server-side media-pagination path and broader large-query work remain
   deferred.
 - Trusted server-side backups intentionally contain credentials and session
   data and must never be exposed through client-accessible routes.
 - Container files remain deferred design scaffolding, not a supported
   deployment workflow.
-- This source release is licensed under the MIT License; see `LICENSE`.
+- This source release is licensed under the MIT License; see the root `LICENSE` file.
 
 ## Validation
 

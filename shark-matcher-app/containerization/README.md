@@ -10,7 +10,7 @@
 
 This directory describes the intended **lightweight web application**
 container. The companion matcher container guide
-(`shark-matcher/containerization/README.md`) describes the ML inference tier.
+(`shark-match-model/containerization/README.md`) describes the ML inference tier.
 
 The repositories already communicate via HTTP and an immutable inference
 snapshot in the non-container workflow; later container work should use those
@@ -19,11 +19,11 @@ same owners.
 | Container | Intended responsibility |
 |---|---|
 | `shark-matcher-app` | Browser/API service, SQLite, image management, and publication of public inference snapshots |
-| `shark-matcher` | Model loading, inference, embedding generation, retrieval, and validation of app-published snapshots |
+| `shark-match-model` | Model loading, inference, embedding generation, retrieval, and validation of app-published snapshots |
 
 ### Why This Split
 
-The section "Why This Split" in `shark-matcher/containerization/README.md` gives the reasons.
+The section "Why This Split" in `shark-match-model/containerization/README.md` gives the reasons.
 
 ## Lightweight Application Image
 
@@ -82,7 +82,7 @@ inference tier.
 ### Paths
 
 - The app's [`core/app_constants.py`](../core/app_constants.py) and the matcher's
-  `src/core/constants.py` (in the `shark-matcher` repository) own path resolution.
+  `src/core/constants.py` (in the `shark-match-model` repository) own path resolution.
 - Both support `SHARK_INFERENCE_SNAPSHOT_ROOT` for the shared snapshot location.
 - For other data roots, future container work must reconcile the existing
   checkout-relative defaults with the separate images and provide explicit,

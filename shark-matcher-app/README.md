@@ -3,7 +3,7 @@
 The **Shark Matcher App** is the web interface and database tooling for the
 Shark Matcher system. Researchers and conservationists use it to manage shark
 data, view computer vision matches, and curate sightings. It talks to the
-models in the sibling directory (`shark-matcher`).
+models in the sibling directory (`shark-match-model`).
 
 New to Shark Matcher? The [Getting Started](#getting-started) section takes you
 from cloning `sharkLinq` and downloading the release data to a first match.
@@ -20,13 +20,13 @@ from cloning `sharkLinq` and downloading the release data to a first match.
 - The matcher owns model and embedding-generation artifacts.
 - Authoritative paths live in each repository's constants file.
 - The *Required Sister Directory* section of the matcher's `README.md`
-  (`../shark-matcher/README.md` from this checkout) describes the directory.
+  (`../shark-match-model/README.md` from this checkout) describes the directory.
 
 ### Prerequisites
 
 - Python 3.12 for both repositories.
 - The `sqlite3` command-line tool, which the database scripts call.
-- A platform listed under *Tested Platforms* in `shark-matcher/README.md`.
+- A platform listed under *Tested Platforms* in `shark-match-model/README.md`.
 - Node.js only for the JavaScript lint gate (`npm ci` in `frontend/`).
 
 ### Installation
@@ -56,8 +56,8 @@ from cloning `sharkLinq` and downloading the release data to a first match.
    ```
    Run `npm ci` in `frontend/` as well if you will use the JavaScript lint gate.
 
-4. **Install `shark-matcher` requirements**: Follow the "Installation"
-   section of the shark-matcher README, in that repository's own virtual
+4. **Install `shark-match-model` requirements**: Follow the "Installation"
+   section of the shark-match-model README, in that repository's own virtual
    environment.
 
    Package-only alternative for this app: `python -m pip install .`; the
@@ -76,15 +76,23 @@ This walkthrough takes you from a fresh `sharkLinq` clone and the release data
 directory to matching sharks in the browser. Each stage says how to confirm it
 worked. Start every terminal in the `sharkLinq` root directory.
 
-You also need a data directory (`sm-data`) holding:
+> [!NOTE]
+> **Ready to demo out of the box.** The sample dataset (`sm-data.zip` from
+> `linqs/sharkLinq` GitHub Releases) already supplies a trained model
+> (`omega_miew_arcface_random`), precomputed embeddings (`pre2019-sample-data`),
+> formatted images, and database CSVs. You do **not** need to run data cleaning,
+> model training, or embedding generation to run the app demo with the sample
+> data; those steps in `shark-match-model/README.md` are only needed when
+> bringing your own dataset or training a new model.
 
-- an embedding set;
-- the `database-format/` dataset it was built from;
-- its images;
-- for updating embeddings with new photos, the checkpoint that produced the set.
+Any `sm-data` directory used with the app holds four components, all pre-built
+in the sample download:
 
-The sample download provides all four: dataset and embedding set
-`pre2019-sample-data`, checkpoint `omega_miew_arcface_random`.
+- an embedding set (`pre2019-sample-data`);
+- the `database-format/` dataset it was built from (`pre2019-sample-data`);
+- its formatted images;
+- the trained checkpoint that produced the set (`omega_miew_arcface_random`),
+  used when updating embeddings with new photos.
 
 ### 1. Install Both Repositories
 
@@ -98,7 +106,7 @@ so its first install can take several minutes.
 
 Download `sm-data.zip` from the `linqs/sharkLinq` GitHub Releases (see the root
 `README.md`) and extract it into `sharkLinq/sm-data/` so it sits beside
-`shark-matcher/` and `shark-matcher-app/`, or export `SHARK_DATA_ROOT` with its
+`shark-match-model/` and `shark-matcher-app/`, or export `SHARK_DATA_ROOT` with its
 absolute path in every terminal used below.
 
 **Confirm:** from the `sharkLinq` root directory, `ls sm-data` lists
@@ -110,7 +118,7 @@ In a first terminal, generate the key both services share, choose the model to
 serve, and start the matcher on this machine only:
 
 ```bash
-cd shark-matcher
+cd shark-match-model
 source .venv/bin/activate
 export SHARK_INFERENCE_API_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
 echo "$SHARK_INFERENCE_API_KEY"
@@ -118,10 +126,11 @@ export SHARK_MODELS="Shark Matcher:baseline:none:EMBEDDING_SET:CHECKPOINT"
 SHARK_INFERENCE_HOST=127.0.0.1 python3 -m src.api.server
 ```
 
-- Replace `EMBEDDING_SET` with a directory under `embeddings/`.
-- Replace `CHECKPOINT` with the directory under `trained-models/` that produced it.
+- Replace `EMBEDDING_SET` with a directory under `embeddings/` (for the sample data, `pre2019-sample-data`).
+- Replace `CHECKPOINT` with the directory under `trained-models/` that produced it (for the sample data, `omega_miew_arcface_random`).
+- You can also omit `SHARK_MODELS` entirely to load the sample bundle defaults (`DEFAULT_MODELS`).
 - Keep the printed key for the next stages.
-- The *Configuring Models and Retrieval* section of `shark-matcher/README.md`
+- The *Configuring Models and Retrieval* section of `shark-match-model/README.md`
   explains every field.
 
 **Confirm:** in another terminal, replacing `SHARED_KEY` with the printed key:
@@ -148,7 +157,7 @@ python3 -m db.database init
 python3 -m db.database populate --all --data-path DATASET
 ```
 
-- Replace `DATASET` with that directory's name under `database-format/`.
+- Replace `DATASET` with that directory's name under `database-format/` (for the sample data, `pre2019-sample-data`).
 - `init` refuses to wipe a database that already holds data; to start over,
   back it up and rerun `init` with `--force`.
 - The dataset's `users.csv` supplies the test administrator, `admin` with
@@ -228,8 +237,7 @@ the new images with the configured checkpoint.
   `/api/embeddings/update`.
 
 **Confirm:** after the update finishes, *Images without Embeddings* returns to
-`0`. Design details: Part 2 of
-`docs/embeddings-update-pipeline.md`.
+`0`. Design details: `docs/embeddings-update-pipeline.md`.
 
 ### 8. Stop
 
@@ -240,7 +248,6 @@ during an embedding update interrupts that update.
 
 - Shared matching demo: `demo/README.md`.
 - Scheduled backups: `docs/cron-setup.md`.
-- Search and match from a terminal: `docs/direct-api.md`.
 - Tests: `python3 -m tests.tools.run_tests` in either repository.
 
 ## Application Usage & Orchestration
@@ -251,7 +258,7 @@ Application server startup and database snapshots are orchestrated through
 ### Inference Service Dependency
 
 > [!IMPORTANT]
-> The web server relies on the `shark-matcher` inference service for all
+> The web server relies on the `shark-match-model` inference service for all
 > retrieval and embedding operations. The app can start without it, but match
 > requests and inference-backed dataset statistics fail until it is ready.
 
@@ -331,9 +338,6 @@ To see all options of the script:
 python3 -m scripts.shark_identification --help
 ```
 
-- **Search and match from a terminal**: authenticated clients can use GET search
-  and matching through the application server. `docs/direct-api.md` covers
-  login, curl examples, filters, permissions, and verification.
 - **Generate embeddings**: authorized administrators use the Update Embeddings
   control in the application. The server creates an immutable public snapshot
   and asks the configured inference service to publish updated vector
@@ -367,9 +371,9 @@ written by tests. New cases should use temporary inputs or mocks.
 
 ## License
 
-Released under the MIT License by the LINQS Lab at UC Santa Cruz; see the
+Released under the MIT License by the LINQS Lab at UC Santa Cruz; see the root
 `LICENSE` file. Credits for the sample dataset and the MiewID model are in the
-*License and Credits* section of `shark-matcher/README.md`.
+*License and Credits* section of the root `README.md`.
 
 ## Repository Structure
 
@@ -392,7 +396,7 @@ shark-matcher-app/
 │   ├── manual/               # live-database audit
 │   ├── ci-test-data/         # immutable fixture
 │   └── tools/                # test runner and style gates
-├── docs/                     # workflow and architecture notes, audits, cron guide, release notes
+├── docs/                     # workflow and architecture notes, cron guide, release notes
 ├── containerization/         # deferred container design placeholder
 ├── config/                   # tool configuration (pylintrc)
 ├── requirements/             # requirement sets used by setup.py, CI and Docker

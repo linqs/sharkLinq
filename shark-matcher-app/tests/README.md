@@ -3,7 +3,7 @@
 The application suite verifies the app-owned database, HTTP handlers, browser
 support code, inference-service client boundary, snapshot publication, and
 release packaging. Machine-learning training and visualization tests belong to
-the separate `shark-matcher` repository.
+the separate `shark-match-model` repository.
 
 ## Running Tests
 

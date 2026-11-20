@@ -23,7 +23,7 @@ The embedding-update handler in `frontend/project.py` calls `create_inference_sn
 
 ## Image Conversion Helper
 
-`backend/convert_images.py` converts image directories to standardised JPEGs. It is a copy kept in sync with `src/cli/convert_images.py` in the matcher repository (`shark-matcher`), and no module in this repository imports it.
+`backend/convert_images.py` converts image directories to standardised JPEGs. It is a copy kept in sync with `src/cli/convert_images.py` in the matcher repository (`shark-match-model`), and no module in this repository imports it.
 
 Change the copy and the original together, or change neither.
 

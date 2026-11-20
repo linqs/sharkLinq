@@ -1,6 +1,6 @@
 """Image formatting utilities converting uploaded images to standardised JPEG format for the ML pipeline.
 
-Keep conversion semantics aligned with shark-matcher/src/cli/convert_images.py.
+Keep conversion semantics aligned with shark-match-model/src/cli/convert_images.py.
 """
 
 import glob

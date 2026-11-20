@@ -17,7 +17,7 @@ The HTTP layer: the web server, request routing, authentication, API handlers, a
 | `action.py` | Reading the audit log and recording actions. |
 | `review.py` | Unmatch and merge suggestions from the inference service; its route is currently commented out in `server.py`. |
 | `project.py` | Dataset statistics, embedding updates, and data export. |
-| `inference_client.py` | HTTP client for the `shark-matcher` inference service. |
+| `inference_client.py` | HTTP client for the `shark-match-model` inference service. |
 | `cli/` | Command-line server runner; see `frontend/cli/README.md`. |
 | `static/` | Browser interface assets; see `frontend/static/README.md`. |
 | `package.json`, `package-lock.json`, `eslint.config.js` | Node tooling for the JavaScript lint gate only. |

@@ -26,15 +26,13 @@ _MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 _STATUS_BANNER = re.compile(r"\A#[^\n]*\n+> \*\*Status:\*\*")
 _ENVIRONMENT_NAME = re.compile(r"\bSHARK_[A-Z0-9_]+\b")
 _SERVICE_KEY_ASSIGNMENT = re.compile(r"SHARK_INFERENCE_API_KEY=(\S+)")
-_REPOSITORY_BLOB_LINK = re.compile(r"https://github\.com/linqs/shark-matcher(?:-app)?/blob/")
+_REPOSITORY_BLOB_LINK = re.compile(r"https://github\.com/linqs/(?:shark-match-model|shark-matcher-app)/blob/")
 _ANGLE_PLACEHOLDER = re.compile(r"<[a-z][a-z -]*>")
 # Words that Title Case headings leave lowercase unless they come first.
 _SMALL_WORDS = {"a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "into", "nor",
                 "of", "on", "or", "per", "the", "to", "via", "vs", "with"}
 # Matcher settings the app guides explain; the matcher's constants and server own them.
 _MATCHER_ENVIRONMENT_NAMES = {"SHARK_INFERENCE_HOST", "SHARK_INFERENCE_PORT", "SHARK_MODELS"}
-# Shell variables that the direct API examples define for the reader's terminal.
-_EXAMPLE_SHELL_VARIABLES = {"SHARK_TOKEN", "SHARK_URL", "SHARK_USER"}
 # Endpoints served by the matcher, so their documented URLs use the inference port.
 _MATCHER_ROUTES = ("/health", "/ready", "/stats", "/embeddings")
 
@@ -1053,13 +1051,12 @@ def test_app_documentation_contains_no_fixed_service_key():
 
 
 def test_app_documented_environment_names_are_known():
-    """Every SHARK_* name in current documentation is app source, a matcher setting, or an example variable."""
+    """Every SHARK_* name in current documentation is app source or a matcher setting."""
     documented = set()
     for text in _markdown_documents(APP_ROOT, include_internal=False).values():
         documented.update(_ENVIRONMENT_NAME.findall(text))
 
-    unknown = (documented - _source_environment_names(APP_ROOT)
-               - _MATCHER_ENVIRONMENT_NAMES - _EXAMPLE_SHELL_VARIABLES)
+    unknown = documented - _source_environment_names(APP_ROOT) - _MATCHER_ENVIRONMENT_NAMES
     assert unknown == set()
 
 

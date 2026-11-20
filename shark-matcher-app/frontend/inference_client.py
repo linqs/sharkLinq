@@ -1,4 +1,4 @@
-"""HTTP client for communicating with the shark-matcher inference service."""
+"""HTTP client for communicating with the shark-match-model inference service."""
 
 import http.client
 import json

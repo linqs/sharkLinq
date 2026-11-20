@@ -1,7 +1,7 @@
 # Shark Matcher App — Web Application Service
 #
 # Serves the web UI, REST API, and database.
-# All ML inference is delegated to the shark-matcher inference service via HTTP.
+# All ML inference is delegated to the shark-match-model inference service via HTTP.
 #
 # Build from the shark-matcher-app/ root:
 #   docker build -f containerization/Dockerfile -t shark-matcher-app .
@@ -59,8 +59,8 @@ RUN mkdir -p \
 EXPOSE 12345
 
 # Environment variables (override via docker-compose environment: or -e flags).
-#   INFERENCE_SERVICE_URL  — URL of the shark-matcher inference service
+#   INFERENCE_SERVICE_URL  — URL of the shark-match-model inference service
 #   SHARK_MODELS           — comma-separated model names to preload
-ENV INFERENCE_SERVICE_URL=http://shark-matcher:8000
+ENV INFERENCE_SERVICE_URL=http://shark-match-model:8000
 
 CMD ["python3", "-m", "frontend.cli.serve", ".", "--no-browser"]

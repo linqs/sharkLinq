@@ -34,7 +34,7 @@ python3 -m pytest tests/browser --browser chromium
 
 - `tests/conftest.py` points `SHARK_DATA_ROOT` at a temporary directory and sets `SHARK_TEST_MODE`, so no real data is touched.
 - The browser blocks requests to Google Fonts so page loads never wait on the network.
-- The inference service is a local stub; no `shark-matcher` process is needed.
+- The inference service is a local stub; no `shark-match-model` process is needed.
 - The committed CI fixture in `tests/ci-test-data/` is only read, never written.
 
 ## Boundaries

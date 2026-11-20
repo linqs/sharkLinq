@@ -1,6 +1,6 @@
 # Shark Matcher — Docker Compose
 #
-# Starts both the ML inference service (shark-matcher) and the web application
+# Starts both the ML inference service (shark-match-model) and the web application
 # (shark-matcher-app) as a pair of containers.
 #
 # ── Prerequisites ──────────────────────────────────────────────────────────
@@ -8,13 +8,13 @@
 #   The following directories must exist as siblings on the host:
 #
 #     sm-data/            Model artifacts, embeddings, annotation CSVs
-#     shark-matcher/      ML inference service repository
+#     shark-match-model/      ML inference service repository
 #     shark-matcher-app/  This repository
 #
 #   Expected layout:
 #     <parent>/
 #     ├── sm-data/
-#     ├── shark-matcher/
+#     ├── shark-match-model/
 #     └── shark-matcher-app/
 #         └── containerization/
 #             └── docker-compose.yml   <- this file
@@ -50,9 +50,9 @@ services:
   # ── ML Inference Service ─────────────────────────────────────────────────
   # Loads trained models, generates and serves vector embeddings.
   # Exposes a REST API consumed by shark-matcher-app.
-  shark-matcher:
+  shark-match-model:
     build:
-      context: ../../shark-matcher
+      context: ../../shark-match-model
       dockerfile: containerization/Dockerfile
     volumes:
       # Shared data directory: model artifacts, embeddings, annotation CSVs.
@@ -83,7 +83,7 @@ services:
 
   # ── Web Application ───────────────────────────────────────────────────────
   # Serves the web UI, REST API, database, and data management tools.
-  # Delegates all matching/embedding queries to the shark-matcher service.
+  # Delegates all matching/embedding queries to the shark-match-model service.
   shark-matcher-app:
     build:
       context: ..
@@ -97,11 +97,11 @@ services:
     environment:
       # Values are read from the .env file in this directory if present,
       # falling back to the defaults shown here. See .env.example.
-      - INFERENCE_SERVICE_URL=${INFERENCE_SERVICE_URL:-http://shark-matcher:8000}
+      - INFERENCE_SERVICE_URL=${INFERENCE_SERVICE_URL:-http://shark-match-model:8000}
       - SHARK_INFERENCE_API_KEY=${SHARK_INFERENCE_API_KEY:-}
     restart: unless-stopped
     depends_on:
-      shark-matcher:
+      shark-match-model:
         # Wait until the inference service passes its health check before
         # starting, so the first match request does not arrive too early.
         condition: service_healthy
