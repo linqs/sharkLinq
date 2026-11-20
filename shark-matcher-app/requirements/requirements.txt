@@ -1,0 +1,6 @@
+pillow==11.2.1
+argon2-cffi==23.1.0
+
+# Keep current development and CI installs backward compatible while runtime
+# packaging reads only the dependency lines above.
+-r requirements-dev.txt

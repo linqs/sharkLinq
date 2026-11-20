@@ -1,0 +1,6 @@
+# pslpython 2.4.0 pins JPype1==1.4.0, which has no Python 3.12 wheel and does
+# not compile on current CPython. Install the working Java bridge here, then
+# install pslpython separately while bypassing that stale transitive pin:
+#
+#     pip install --no-deps pslpython==2.4.0
+JPype1==1.7.1

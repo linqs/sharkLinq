@@ -1,0 +1,107 @@
+# Shark Matcher — Docker Compose
+#
+# Starts both the ML inference service (shark-matcher) and the web application
+# (shark-matcher-app) as a pair of containers.
+#
+# ── Prerequisites ──────────────────────────────────────────────────────────
+#
+#   The following directories must exist as siblings on the host:
+#
+#     sm-data/            Model artifacts, embeddings, annotation CSVs
+#     shark-matcher/      ML inference service repository
+#     shark-matcher-app/  This repository
+#
+#   Expected layout:
+#     <parent>/
+#     ├── sm-data/
+#     ├── shark-matcher/
+#     └── shark-matcher-app/
+#         └── containerization/
+#             └── docker-compose.yml   <- this file
+#
+# ── Usage ──────────────────────────────────────────────────────────────────
+#
+#   Start both services:
+#     docker compose -f shark-matcher-app/containerization/docker-compose.yml up
+#
+#   Start and rebuild images after code changes:
+#     docker compose -f shark-matcher-app/containerization/docker-compose.yml up --build
+#
+#   Load specific models (override default miew + vit_triplet):
+#     docker compose ... run shark-matcher-app \
+#       python3 -m frontend.cli.serve . --no-browser --model miew
+#
+#   First-time database initialisation (run once before starting services):
+#     docker compose ... run --rm shark-matcher-app \
+#       python3 -m db.database init
+#
+# ── Database setup ─────────────────────────────────────────────────────────
+#
+#   On a fresh install the database must be initialised before the app starts:
+#
+#     docker compose run --rm shark-matcher-app python3 -m db.database init
+#     docker compose run --rm shark-matcher-app python3 -m db.database populate \
+#       --all --data-path /sm-data/database-format/<your-dataset>
+#
+# ───────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── ML Inference Service ─────────────────────────────────────────────────
+  # Loads trained models, generates and serves vector embeddings.
+  # Exposes a REST API consumed by shark-matcher-app.
+  shark-matcher:
+    build:
+      context: ../../shark-matcher
+      dockerfile: containerization/Dockerfile
+    volumes:
+      # Shared data directory: model artifacts, embeddings, annotation CSVs.
+      - ../../sm-data:/sm-data
+    ports:
+      # Inference API — accessible on the host for debugging; not required
+      # for the app container which uses the internal Docker network.
+      - "8000:8000"
+    environment:
+      - SHARK_MODELS=${SHARK_MODELS:-}
+      - SHARK_INFERENCE_API_KEY=${SHARK_INFERENCE_API_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      # Waits for the inference service to finish loading models before the
+      # app container starts sending match requests.
+      test:
+        - "CMD-SHELL"
+        - >
+          python3 -c
+          "import urllib.request;
+          urllib.request.urlopen('http://localhost:8000/health', timeout=5)"
+          || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      # Allow generous start_period for large model loading times.
+      start_period: 120s
+
+  # ── Web Application ───────────────────────────────────────────────────────
+  # Serves the web UI, REST API, database, and data management tools.
+  # Delegates all matching/embedding queries to the shark-matcher service.
+  shark-matcher-app:
+    build:
+      context: ..
+      dockerfile: containerization/Dockerfile
+    volumes:
+      # All persistent data — model artifacts, embeddings, annotation CSVs,
+      # database, images, and logs — colocated under sm-data/.
+      - ../../sm-data:/sm-data
+    ports:
+      - "12345:12345"
+    environment:
+      # Values are read from the .env file in this directory if present,
+      # falling back to the defaults shown here. See .env.example.
+      - INFERENCE_SERVICE_URL=${INFERENCE_SERVICE_URL:-http://shark-matcher:8000}
+      - SHARK_INFERENCE_API_KEY=${SHARK_INFERENCE_API_KEY:-}
+    restart: unless-stopped
+    depends_on:
+      shark-matcher:
+        # Wait until the inference service passes its health check before
+        # starting, so the first match request does not arrive too early.
+        condition: service_healthy

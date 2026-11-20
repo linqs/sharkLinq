@@ -1,0 +1,7 @@
+pytest==9.0.2
+pylint==4.0.4
+coverage==7.17.3
+# Required by starlette.testclient, which FastAPI's TestClient wraps; httpx2 is the httpx author's successor package, not a typo.
+httpx2==2.16.2
+# Builds wheels and source archives in the packaging contract tests.
+setuptools==84.2.1

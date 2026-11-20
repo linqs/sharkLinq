@@ -1,0 +1,7 @@
+# System files
+.DS_Store
+
+# Data directories and release archives (distributed via GitHub Releases)
+sm-data/
+sm-data-sample/
+*.zip

@@ -1,0 +1,61 @@
+{
+  "description": "Exact ordered filter results for the immutable committed CI fixture. Counts are derived from these arrays; server pagination must reproduce their slices without overlap or omission.",
+  "proposals": {
+    "no_filter": [15, 14, 13, 12, 11, 10],
+    "status_open": [15, 14, 12],
+    "status_archive": [13, 11, 10],
+    "action_upload": [],
+    "action_merge": [14],
+    "action_update": [12],
+    "action_delete": [15, 11, 10],
+    "object_individual": [14, 13],
+    "object_media": [15, 12],
+    "author_0": [15, 14, 13, 12, 11, 10],
+    "keyword_merged_boy": [14]
+  },
+  "actions": {
+    "no_filter": [23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    "action_create": [21, 20, 19, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8],
+    "action_merge": [7, 6],
+    "action_update": [4, 3, 2, 1],
+    "action_delete": [23, 22, 18],
+    "action_unmatch": [5],
+    "object_individual": [22, 21, 19, 7, 6, 5, 4, 3, 1],
+    "object_media": [23, 20, 2],
+    "object_tag": [8],
+    "author_0": [23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    "keyword_acoustic": [8]
+  },
+  "individuals": {
+    "no_filter": [27, 25, 24, 23, 22, 21],
+    "sex_M": [27, 23],
+    "sex_F": [25, 24, 21],
+    "length_10_12": [21],
+    "label_fresh": [27, 21],
+    "label_any": [27, 21],
+    "tag_test-tag": [22],
+    "alternate_name_merged_boy": [22],
+    "alternate_name_any": [27, 22, 21],
+    "location_AN": [27, 25, 24, 23, 22, 21],
+    "location_FAR": [22],
+    "quality_good": [27, 21],
+    "time_2011_2012": [27, 24, 23, 22, 21],
+    "min_associated_3": [24, 23, 22],
+    "sex_F_label_fresh": [21],
+    "keyword_merged_boy": [22]
+  },
+  "media": {
+    "no_filter": [19, 2, 9, 18, 17, 16, 15, 20, 0, 3, 6, 11, 8, 13, 14, 7, 12, 21, 5, 4, 1],
+    "location_AN": [19, 2, 9, 18, 17, 16, 15, 20, 0, 3, 6, 11, 8, 13, 14, 7, 12, 21, 1],
+    "location_FAR": [5, 4],
+    "location_NB": [],
+    "type_underwater": [19, 2, 9, 18, 17, 16, 15, 20, 0, 3, 6, 11, 8, 13, 14, 7, 12, 21, 5, 4],
+    "type_topshot": [1],
+    "quality_good": [21, 1],
+    "quality_medium": [21, 1],
+    "quality_poor": [21, 1],
+    "time_2011_2012": [8, 13, 14, 7, 12, 21, 5, 4, 1],
+    "location_AN_topshot": [1],
+    "keyword_missing": []
+  }
+}

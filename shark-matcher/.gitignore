@@ -1,0 +1,102 @@
+# System files #
+################
+.DS_Store
+Thumbs.db
+
+# IDE metadata #
+################
+.classpath
+.project
+.settings
+.idea
+.vscode
+
+# Editor temporary #
+####################
+*.swp
+*~
+
+# Python #
+##########
+__pycache__/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+.eggs/
+/venv/
+/.venv/
+.python-version
+*.egg-info/
+*.egg
+*.whl
+
+# Environment #
+###############
+.env
+.env.*
+!.env.example
+
+# Data #
+########
+*.zip
+*.tar.gz
+*.tsv
+*.csv
+*.log
+
+# Allow test fixtures to be tracked despite *.csv rule.
+!tests/fixtures/**
+
+# Experiment Output #
+#####################
+results*
+*Results*
+output/
+output.txt
+backend/results/
+backend/models/trained
+
+# Authentication #
+#################
+secret*
+credentials*
+token*
+
+# Database #
+###########
+*.db
+
+# Models #
+##########
+*.pt
+*.pth
+sam2/
+
+# AI & Agent metadata #
+#######################
+.claude/
+.claude*
+*claude*
+*CLAUDE*
+*[cC][lL][aA][uU][dD][eE]*
+agent.md
+AGENT.md
+agents.md
+AGENTS.md
+*agent*.md
+*AGENT*.md
+[aA][gG][eE][nN][tT]*.md
+*[aA][gG][eE][nN][tT]*.md
+.agent
+.agent/
+.agents
+.agents/
+.cursor/
+.cursorrules
+.cursorignore
+.windsurf/
+.windsurfrules
+.aider*

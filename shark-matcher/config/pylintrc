@@ -1,0 +1,19 @@
+[MAIN]
+# The repo root is the import root: every internal module is addressed as
+# `src.*` (see the `import src.config.config` style throughout). Without this, pylint
+# puts the *linted file's* directory on sys.path instead of the repo root, so
+# linting anything under src/ standalone reports spurious E0401 import-errors
+# for modules that import perfectly well at runtime.
+#
+# This is why `src/config.py` does NOT carry a file-level `import-error`
+# disable: the errors were an invocation artifact, not a real path problem.
+# Suppressing them per-file would also have masked genuine import breakage.
+source-roots=.
+
+[TYPECHECK]
+# OpenCV exposes these extension-backed members at runtime; Pylint cannot
+# discover them from the compiled module during a repository-wide lint run.
+generated-members=cv2.*
+
+# pslpython is an optional extra that pip alone cannot install (see requirements-psl.txt).
+ignored-modules=pslpython

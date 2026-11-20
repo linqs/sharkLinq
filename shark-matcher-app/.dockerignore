@@ -1,0 +1,47 @@
+# Git history
+.git
+.gitignore
+
+# Python build artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.eggs
+dist
+build
+
+# Virtual environments
+.venv
+venv
+env
+
+# Node / JS tooling (ESLint config, not needed at runtime)
+**/node_modules
+
+# Database files — these are mounted as volumes at runtime, not baked in.
+# Baking them in would freeze a snapshot of the data inside the image.
+db/*.db
+
+# Logs and generated output
+data-out/
+*.log
+
+# Test data and test suite (not needed in production image)
+tests/
+*.test.py
+
+# Environment variable files — never bake secrets into the image
+.env
+.env.*
+
+# IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+
+# Containerisation files themselves (not needed inside the image)
+containerization/

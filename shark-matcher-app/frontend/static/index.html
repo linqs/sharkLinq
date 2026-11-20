@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Shark Matcher</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel='stylesheet' type='text/css' href='/static/css/vendor/normalize.css'>
+	<link rel='stylesheet' type='text/css' href='/static/css/style.css'>
+	<link rel="icon" href="/static/favicon.ico" />
+
+	<!-- Associated scripts -->
+	<script type="module" src="/static/js/main.js"></script>
+	<script>
+		const savedTheme = localStorage.getItem('SHARKMATCHER.THEME');
+		if (savedTheme === 'dark') {
+			document.documentElement.dataset.theme = 'dark';
+		}
+	</script>
+</head>
+
+<body>
+	<img class="loader" src="/static/images/shark-loading.png">
+	<div class="container">
+		<div class="header">
+			<div class='site-icon'></div>
+			<h1><a href="/">Shark Matcher</a></h1>
+			<div class='current-user'></div>
+			<div class='header-content'></div>
+		</div>
+		<div class='content'></div>
+	</div>
+</body>
+
+<!-- Footer --><!-- TODO update this and version dynamically -->
+<!-- <footer>
+	<p>Shark Matcher Version: 1.0.0, Image Model: 0.2.2, Image Model Dataset: delta-v5</p>
+</footer> -->
+
+</html>

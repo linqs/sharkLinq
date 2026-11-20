@@ -1,0 +1,7 @@
+pytest==9.0.2
+pylint==4.0.4
+coverage==7.17.3
+pytest-playwright==0.9.0
+playwright==1.63.0
+# Builds wheels and source archives in the packaging contract tests.
+setuptools==84.2.1

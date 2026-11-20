@@ -1,0 +1,3 @@
+[MAIN]
+# The repository root owns the application's top-level import packages.
+source-roots=.

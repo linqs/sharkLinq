@@ -1,0 +1,2 @@
+include docs/release-notes.md
+recursive-include requirements *.txt

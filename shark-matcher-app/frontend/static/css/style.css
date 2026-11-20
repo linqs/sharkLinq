@@ -1,0 +1,1575 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ==========================================================================
+   Variables
+   ========================================================================== */
+:root {
+  --glass-backdrop: blur(40px);
+  --constraint-agree-bg: rgba(134, 239, 172, 0.35);
+  --constraint-agree-text: #166534;
+  --constraint-partial-bg: rgba(253, 224, 71, 0.35);
+  --constraint-partial-text: #854d0e;
+  --constraint-disagree-bg: rgba(252, 165, 165, 0.35);
+  --constraint-disagree-text: #991b1b;
+  --glass-bg: rgba(255, 255, 255, 0.4);
+  --glass-bg-header: rgba(255, 255, 255, 0.5);
+  --glass-bg-hover: rgba(255, 255, 255, 0.6);
+  --glass-bg-input: rgba(255, 255, 255, 0.7);
+  --popover-bg: rgba(255, 255, 255, 0.95);
+  --popover-input-bg: rgba(0, 0, 0, 0.05);
+  --popover-input-border: rgba(0, 0, 0, 0.1);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.2);
+  --glass-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.8), 0 20px 50px rgba(0, 0, 0, 0.1);
+  --text-color: #1a202c;
+  --text-secondary: rgba(0, 0, 0, 0.6);
+  --bg-gradient: radial-gradient(at 0% 0%, #a1c4fd 0px, transparent 50%), radial-gradient(at 100% 100%, #c2e9fb 0px, transparent 50%), #e0f2fe;
+  --app-font: 'Inter', sans-serif;
+  --mono-font: 'JetBrains Mono', monospace;
+  --row-border: rgba(0, 0, 0, 0.1);
+  --active-tab-bg: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] {
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --constraint-agree-bg: rgba(134, 239, 172, 0.18);
+  --constraint-agree-text: #86efac;
+  --constraint-partial-bg: rgba(253, 224, 71, 0.18);
+  --constraint-partial-text: #fde047;
+  --constraint-disagree-bg: rgba(252, 165, 165, 0.18);
+  --constraint-disagree-text: #fca5a5;
+  --glass-bg-header: rgba(255, 255, 255, 0.05);
+  --glass-bg-hover: rgba(255, 255, 255, 0.15);
+  --glass-bg-input: rgba(255, 255, 255, 0.1);
+  --popover-bg: rgba(30, 41, 59, 0.95);
+  --popover-input-bg: rgba(0, 0, 0, 0.2);
+  --popover-input-border: rgba(255, 255, 255, 0.05);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+  --glass-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.2), 0 20px 50px rgba(0, 0, 0, 0.1);
+  --text-color: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --bg-gradient: radial-gradient(at 0% 0%, #023859 0px, transparent 50%), radial-gradient(at 100% 100%, #035b71 0px, transparent 50%), #011526;
+  --row-border: rgba(255, 255, 255, 0.1);
+  --active-tab-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   Base & Reset
+   ========================================================================== */
+html {
+  font-family: var(--app-font);
+  height: 100%;
+  max-height: 100%;
+}
+
+body {
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-color);
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  text-align: center;
+}
+
+h1 {
+  margin-bottom: 17px;
+}
+
+h3 {
+  font-size: 1.3em;
+  font-weight: normal;
+  margin: 5px;
+}
+
+h4 {
+  font-size: 1.15em;
+  font-weight: normal;
+  margin-bottom: 5px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  border-radius: 5px;
+}
+
+/* ==========================================================================
+   Layout
+   ========================================================================== */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+}
+
+.header {
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg-header);
+  border-bottom: var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+  margin: 5px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.content {
+  flex: 1;
+  position: relative;
+  z-index: 0;
+}
+
+.row {
+  display: flex;
+}
+
+/* ==========================================================================
+   Components: Inputs, Buttons, & Links
+   ========================================================================== */
+input,
+select {
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg-input);
+  border: var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-color);
+  padding: 5px;
+}
+
+input[type="file"] {
+  margin-top: 10px;
+}
+
+input[type="file"]::file-selector-button {
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-color);
+  cursor: pointer;
+  margin-right: 10px;
+  padding: 5px 10px;
+  transition: background 0.2s;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: var(--glass-bg-hover);
+}
+
+.submit,
+.buttons,
+button,
+.link,
+.dropdown-toggle {
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-color);
+  cursor: pointer;
+  margin: 5px;
+  padding: 10px;
+}
+
+.submit:hover,
+.buttons:hover,
+button:hover,
+.link:hover {
+  background: var(--glass-bg-hover);
+}
+
+.submit {
+  text-align: center;
+}
+
+.load-more-button {
+  width: 25%;
+}
+
+/* ==========================================================================
+   Components: Tabs
+   ========================================================================== */
+.tab-group {
+  align-items: center;
+  flex-wrap: wrap;
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  border-radius: 12px;
+  display: flex;
+  margin: 5px;
+  padding: 5px;
+}
+
+.tab-links {
+  background-color: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 10px 15px;
+  transition: background-color 0.2s;
+}
+
+.tab-links[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tab-links:focus-visible {
+  outline: 2px solid var(--text-color);
+  outline-offset: 2px;
+}
+
+.tab-links:hover:not([aria-disabled="true"]) {
+  background-color: var(--glass-bg-hover);
+}
+
+body[data-page="search"] .tab-links.search,
+body[data-page="match"] .tab-links.match,
+body[data-page="upload"] .tab-links.upload,
+body[data-page="export"] .tab-links.export,
+body[data-page="review"] .tab-links.review,
+body[data-page="proposals"] .tab-links.proposals,
+body[data-page="history"] .tab-links.history,
+body[data-page="settings"] .tab-links.settings {
+  background-color: var(--active-tab-bg);
+  font-weight: 600;
+}
+
+.tab-title {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.tab-results {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   Components: Sections & Panels
+   ========================================================================== */
+.input-section {
+  align-items: center;
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+  display: flex;
+  flex-flow: wrap;
+  gap: 10px;
+  /* Standard spacing */
+  justify-content: space-around;
+  margin: 5px;
+  padding: 5px;
+}
+
+.input-section.filter {
+  gap: 0;
+  /* Remove spacing override for filters */
+}
+
+/* ==========================================================================
+   Smart Search & Filters Popover
+   ========================================================================== */
+/* The side columns keep the search box centred while giving the sort and export controls their own space. */
+.search-controls-row {
+  align-items: center;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 600px) 1fr;
+  margin: 15px auto;
+  padding: 0 20px;
+  width: 100%;
+}
+
+.controls-right-side {
+  align-items: center;
+  display: flex;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.smart-search-container {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  width: 100%;
+}
+
+.smart-search-input {
+  width: 100%;
+  padding: 15px 50px 15px 25px;
+  /* Extra padding on right for the icon */
+  font-size: 1.2rem;
+  border-radius: 30px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-color);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05), 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.smart-search-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--glass-shine);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05), 0 0 20px rgba(255, 255, 255, 0.15);
+}
+
+.smart-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.filter-toggle-btn {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, transform 0.2s ease;
+  z-index: 2;
+  /* Show above input */
+}
+
+.filter-toggle-btn:hover {
+  color: var(--text-color);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.filter-toggle-btn.has-active-filters::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff4757;
+  /* Notification dot color */
+  border-radius: 50%;
+  border: 2px solid var(--glass-bg);
+}
+
+.filter-popover {
+  position: absolute;
+  top: calc(100% + 15px);
+  left: 50%;
+  width: 800px;
+  max-width: 90vw;
+  transform: translateX(-50%) translateY(-10px);
+
+  /* Theme-aware background */
+  background: var(--popover-bg);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+  padding: 25px;
+  z-index: 100;
+
+  /* Grid Layout for filters */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  box-sizing: border-box;
+
+  /* Initial hidden state */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-10px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Scrollable popover */
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-bottom: 100px;
+  /* Increased padding to ensure bottom button is visible */
+}
+
+.filter-popover.active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Redesign popover internal elements */
+.filter-popover .input-item {
+  margin: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  /* clean separators */
+  padding-bottom: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.filter-popover .input-item label {
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0.9;
+  margin-bottom: 4px;
+  color: var(--text-color);
+}
+
+/* Location Dropdown Fixes */
+.search-location-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.search-location-dropdown .dropdown-toggle {
+  width: 100%;
+  height: 35px;
+  background: var(--popover-input-bg);
+  border: 1px solid var(--popover-input-border);
+  border-radius: 6px;
+  color: var(--text-color);
+  padding: 5px 12px;
+  margin: 0;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+}
+
+.search-location-dropdown .dropdown-menu {
+  display: none;
+  /* Hidden by default */
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 5px;
+  padding: 5px 0;
+}
+
+.search-location-dropdown.active .dropdown-menu {
+  display: flex;
+}
+
+.search-location-dropdown .dropdown-menu label {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 6px;
+  font-size: 14px !important;
+  color: var(--text-color) !important;
+  cursor: pointer;
+  margin: 0;
+}
+
+.search-location-dropdown .dropdown-menu input[type="checkbox"] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.filter-popover input[type="text"],
+.filter-popover input[type="number"],
+.filter-popover input[type="date"],
+.filter-popover select {
+  width: 100%;
+  height: 35px;
+  background: var(--popover-input-bg);
+  border: 1px solid var(--popover-input-border);
+  border-radius: 6px;
+  color: var(--text-color);
+  padding: 5px 12px;
+  box-sizing: border-box;
+}
+
+.filter-popover .clear-filters-button {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin-top: 15px;
+  margin-bottom: 20px;
+  background: rgba(255, 50, 50, 0.1);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 100, 100, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.filter-popover .clear-filters-button:hover {
+  background: rgba(255, 50, 50, 0.2);
+}
+
+/* ==========================================================================
+   Sort Pill & Popover
+   ========================================================================== */
+.sort-container {
+  position: relative;
+}
+
+.sort-pill-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 8px 16px;
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.sort-pill-btn:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.sort-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.sort-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 200px;
+  background: var(--popover-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sort-popover.active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.sort-popover .input-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.sort-popover label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--text-color);
+}
+
+.sort-popover select {
+  width: 100%;
+  height: 35px;
+  background: var(--popover-input-bg);
+  border: 1px solid var(--popover-input-border);
+  border-radius: 6px;
+  color: var(--text-color);
+  padding: 5px 12px;
+  box-sizing: border-box;
+}
+
+/* Common style for glass panels */
+.individual,
+.home-pill,
+.settings-user-pill,
+.results-item {
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+  margin: 5px;
+}
+
+.individual {
+  margin: 5px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.profile,
+.edit,
+.gallery {
+  flex: 1;
+  margin: 5px;
+}
+
+.gallery {
+  padding: 5px 10px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   Merge Page Specifics
+   ========================================================================== */
+/* Ensure the column containers stretch their children */
+body[data-page="merge"] .merge.input-column,
+body[data-page="merge"] .merge.output-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Force the individual shark cards to fill the column height */
+body[data-page="merge"] .merge .individual {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* Hide the 'Associated Images' heading in the query panel—not needed when gallery speaks for itself. */
+.match.query-column .gallery h4 {
+  display: none;
+}
+
+.individual-profile,
+.individual-edit {
+  width: 50%;
+}
+
+/* ==========================================================================
+   Components: Popups
+   ========================================================================== */
+div.popup {
+  align-items: center;
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--bg-gradient);
+  display: flex;
+  height: 100vh;
+  justify-content: center;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100vw;
+  z-index: 2000;
+}
+
+.popup-results {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
+}
+
+.popup-gallery.left,
+.popup-gallery.right {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 50%;
+}
+
+.popup-gallery.single {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+}
+
+.popup-gallery-item {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100%;
+  justify-content: center;
+  margin: 0 15px;
+  padding: 0;
+  width: auto;
+}
+
+.popup-gallery-item.selected,
+.popup-gallery-item.reference {
+  background: var(--glass-bg-hover);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.popup-gallery-item figure {
+  align-items: center;
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+  margin: 0;
+  text-shadow: none;
+  width: 100%;
+}
+
+.popup-gallery-item figcaption,
+.popup-gallery-item h3,
+.popup-gallery-item p {
+  color: var(--text-color);
+  flex-shrink: 0;
+  font-weight: normal;
+  margin: 2px 0;
+  max-width: 90%;
+  padding: 5px 0;
+  text-align: center;
+}
+
+.popup-gallery-item h3 {
+  font-size: 1.5em;
+}
+
+.popup-gallery-item img {
+  border: none;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  height: 70vh;
+  max-width: 90vw;
+  object-fit: contain;
+  width: auto;
+}
+
+/* Popup "Esc" Button */
+.popup-escape-container {
+  align-items: center;
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  min-width: 140px;
+  padding: 3px 8px;
+  position: fixed;
+  right: 10px;
+  top: 80px;
+  transition: background-color 0.2s;
+  width: 140px;
+  z-index: 2005;
+}
+
+.popup-escape-container:hover {
+  background: var(--glass-bg-hover);
+}
+
+.popup-escape-container span {
+  color: var(--text-color);
+  font-size: 0.85em;
+  font-weight: normal;
+  user-select: none;
+}
+
+/* ==========================================================================
+   Components: Top-Right Controls
+   ========================================================================== */
+.contrast-toggle-container,
+.mode-selector-container {
+  align-items: center;
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  min-width: 140px;
+  padding: 3px 8px;
+  position: fixed;
+  right: 10px;
+  width: 140px;
+  z-index: 2005;
+}
+
+.contrast-toggle-container {
+  top: 10px;
+}
+
+.mode-selector-container {
+  top: 45px;
+}
+
+.contrast-toggle-container span,
+.mode-selector-container span {
+  color: var(--text-color);
+  font-size: 0.85em;
+  user-select: none;
+}
+
+.mode-selector {
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg-input);
+  border: var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 0.85em;
+  padding: 2px 6px;
+}
+
+.mode-selector:focus {
+  border-color: #6cbbea;
+  box-shadow: 0 0 0 2px rgba(108, 187, 234, 0.2);
+  outline: none;
+}
+
+.logout {
+  margin-left: auto;
+}
+
+/* Toggle Switch */
+.switch {
+  display: inline-block;
+  height: 24px;
+  position: relative;
+  width: 44px;
+}
+
+.switch input {
+  height: 0;
+  opacity: 0;
+  width: 0;
+}
+
+.slider {
+  background-color: var(--glass-bg-hover);
+  bottom: 0;
+  cursor: pointer;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: .4s;
+  -webkit-transition: .4s;
+}
+
+.slider:before {
+  background: var(--text-color);
+  bottom: 3px;
+  content: "";
+  height: 18px;
+  left: 3px;
+  position: absolute;
+  transition: .4s;
+  -webkit-transition: .4s;
+  width: 18px;
+}
+
+input:checked+.slider {
+  background: var(--text-secondary);
+}
+
+input:checked+.slider:before {
+  transform: translateX(20px);
+  -ms-transform: translateX(20px);
+  -webkit-transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* ==========================================================================
+   Page Specific: Match, Merge, History, Info
+   ========================================================================== */
+
+/* Match Tab */
+.query-column {
+  overflow: auto;
+  width: 30%;
+}
+
+.results-column {
+  margin-left: auto;
+  overflow: auto;
+  width: 70%;
+}
+
+.match-error {
+  background: var(--constraint-disagree-bg);
+  border-radius: 8px;
+  color: var(--constraint-disagree-text);
+  margin: 0;
+  padding: 1rem;
+}
+
+/* Merge Tab */
+.input-column {
+  width: 25%;
+}
+
+.output-column {
+  width: 50%;
+}
+
+/* History & Proposal Tabs */
+.result-description {
+  display: flex;
+  flex: 2;
+  /* takes 2 parts of 3 total with result-profile */
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.result-description-item {
+  flex: 1;
+  /* evenly split the 2 parts between original and final objects */
+  text-align: left;
+}
+
+.result-description-item h4 {
+  text-align: center;
+  border-bottom: none;
+}
+
+/* Info & Settings */
+.home-pill p {
+  margin: 8px 0;
+  width: 100%;
+}
+
+.home-pill .embeddings-button {
+  margin-top: 20px;
+}
+
+.settings-user-pill,
+.home-pill {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  margin: 20px auto;
+  max-width: 600px;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+}
+
+/* Row that holds the settings action buttons (All Users, Create User, etc.). */
+.settings-btn-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 10px 0;
+  flex-wrap: wrap;
+}
+
+/* Unified Pill button style used across settings and profile tabs. */
+.pill-btn,
+.card-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  font-family: var(--app-font);
+  font-size: 16px;
+  color: var(--text-color);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pill-btn[hidden] {
+  display: none;
+}
+
+.pill-btn[aria-disabled="true"],
+.pill-btn:disabled,
+.card-action-btn[aria-disabled="true"],
+.card-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pill-btn:hover:not([aria-disabled="true"]):not(:disabled),
+.card-action-btn:hover:not([aria-disabled="true"]):not(:disabled) {
+  background: var(--glass-bg-hover);
+  text-decoration: none;
+}
+
+.pill-btn.active,
+.card-action-btn.active {
+  background: rgba(66, 153, 225, 0.15);
+  border-color: #4299e1;
+  box-shadow: 0 0 10px rgba(66, 153, 225, 0.3);
+}
+
+.info {
+  cursor: pointer;
+  margin-left: 10px;
+  position: relative;
+  top: 0px;
+}
+
+.info-row {
+  border-bottom: 1px solid var(--row-border);
+  display: flex;
+  /* Removed space-between to tighten spacing */
+  align-items: baseline;
+  /* Align text baselines */
+  gap: 10px;
+  margin: 5px 20px;
+  padding: 5px 40px;
+  box-sizing: border-box;
+  /* Prevent padding from adding to width */
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row .label {
+  color: var(--text-color);
+  font-weight: bold;
+  opacity: 0.8;
+  text-align: left;
+  min-width: 150px;
+}
+
+.info-row .value {
+  color: var(--text-color);
+  text-align: left;
+  flex: 1;
+}
+
+/* Ensure object-string doesn't break flow inside info-row */
+.info-row .object-string {
+  margin: 0;
+  height: auto;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.info-row .object-link {
+  margin: 0 5px 0 0;
+}
+
+/* Circular badges applied to .value spans indicating agreement or disagreement with source properties. */
+.constraint-agree,
+.constraint-partial,
+.constraint-disagree {
+  /* Circle: min-width enforces the minimum diameter and grows into a pill for
+     longer values. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  min-width: 1.8em;
+  height: 1.8em;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+/* Prevent badges inside .info-row from stretching across the row. */
+.info-row .constraint-agree,
+.info-row .constraint-partial,
+.info-row .constraint-disagree {
+  flex: none;
+}
+
+.constraint-agree {
+  background: var(--constraint-agree-bg);
+  color: var(--constraint-agree-text);
+}
+
+.constraint-partial {
+  background: var(--constraint-partial-bg);
+  color: var(--constraint-partial-text);
+}
+
+.constraint-disagree {
+  background: var(--constraint-disagree-bg);
+  color: var(--constraint-disagree-text);
+}
+
+
+.objects-area {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding-bottom: 10px;
+}
+
+/* ==========================================================================
+   Results & Objects
+   ========================================================================== */
+.results-container {
+  width: 100%;
+}
+
+.object-list {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin-bottom: 1px;
+  margin-top: 1px;
+}
+
+.object-list-item {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  margin: 5px;
+}
+
+.object-string {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  height: 20px;
+  justify-content: center;
+  margin: 16px;
+}
+
+.object-link {
+  margin-left: 10px;
+}
+
+/* Main gallery container — shared across Search and Profile. */
+.result-gallery {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 10px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+/* Specifically center the gallery on the Individual Profile page. */
+.tab-content.individual .result-gallery {
+  justify-content: center;
+}
+
+/* Scroll strip inside the gallery. */
+.gallery-scroll {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 8px;
+  overflow: visible;
+}
+
+.canvas-container {
+  margin: 5px;
+}
+
+/* Standardized gallery item: 140px width, clean glass rounding. */
+.gallery-item {
+  width: 140px;
+  flex-shrink: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.gallery-item figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--glass-bg);
+  border: var(--glass-border);
+}
+
+.gallery-item img {
+  height: 140px;
+  width: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.gallery-item.reference {
+  width: 140px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 2px;
+  margin: 0;
+}
+
+[data-theme="dark"] .gallery-item.reference {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gallery-item.reference figure {
+  background: transparent;
+  border: none;
+}
+
+.gallery-item .image-container {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+}
+
+.unembedded-indicator {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* =============================================================
+   Hero Image Cards
+   ============================================================= */
+
+/* Hero card image container — full width inside the gallery, no overlap on content. */
+.results-item .image-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.results-item .image-container img {
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  width: 100%;
+  display: block;
+  border-radius: 8px 8px 0 0;
+}
+
+.results-item .image-container img:hover {
+  transform: scale(1.03);
+}
+
+/* Info pill shown BELOW each image — two-line layout: filename top, ID+dist bottom. */
+.hero-image-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 7px 5px 7px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 1px;
+}
+
+.hero-image-pill .hero-filename {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.hero-image-pill .hero-meta {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.hero-image-pill .hero-name {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+}
+
+.hero-image-pill .hero-distance {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+}
+
+/* Subtle distance icon after the separator dot: · <-> 1.17 */
+.hero-image-pill .hero-distance::before {
+  content: '\00b7\00a0\2194\00a0';
+  opacity: 0.55;
+  font-style: normal;
+}
+
+/* Compact ID label replacing the large h3 heading. */
+.card-id-label {
+  padding: 8px 12px 6px 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.card-title-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  font-family: var(--app-font);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-color);
+  text-decoration: none !important;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.card-title-pill:hover {
+  background: var(--glass-bg-hover);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+  text-decoration: none !important;
+}
+
+/* Compact icon action button group — centered, no extra top border (card has its own). */
+.card-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px 12px 12px;
+  margin-top: 4px;
+}
+
+/* Hide legacy plain figcaptions inside result cards; show only .hero-image-pill ones. */
+.results-item figure figcaption:not(.hero-image-pill) {
+  display: none;
+}
+
+/* Ensure result profile panel fits within the flex row card. */
+.results-item .result-profile {
+  flex: 0 0 400px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Ensure the results-item panel is a proper flex ROW card (profile left, gallery right). */
+.results-item {
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  padding: 0;
+  align-items: center;
+}
+
+/* Links in result profile */
+.profile-link,
+.object-link a {
+  text-decoration: underline;
+  color: var(--text-color);
+}
+
+.object-link a:hover {
+  opacity: 0.7;
+}
+
+.gallery-item.selected img {
+  box-shadow: 0 0 0 5px rgb(163, 220, 128);
+}
+
+.proposal-archived {
+  background-color: #867a7a;
+}
+
+/* ==========================================================================
+   Utilities & Animations
+   ========================================================================== */
+.highlight-diff {
+  background-color: var(--glass-bg-hover);
+  border-radius: 8px;
+}
+
+.loader {
+  animation: rotation 4s infinite linear;
+  bottom: 0;
+  display: none;
+  height: 250px;
+  left: 0;
+  margin: auto;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 10000;
+}
+
+/* High Contrast Mode */
+body.high-contrast-mode .popup-gallery img,
+body.high-contrast-mode .gallery-item img {
+  filter: contrast(250%) brightness(110%);
+}
+
+/* Keyframes */
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Review tab candidate pair card with a distance action card on the left and two candidate panes. */
+.merge-pair {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.merge-pair-distance {
+  flex: 0 0 93px;
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+/* Keep the distance label/value inside the narrow column instead of letting
+   the generic .info-row paddings push the value into shark1's profile. */
+.merge-pair-distance .info-row {
+  margin: 0;
+  padding: 0;
+  border-bottom: none;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.merge-pair-distance .info-row .label,
+.merge-pair-distance .info-row .value {
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.merge-pair-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Narrow screens
+   ========================================================================== */
+@media (max-width: 600px) {
+  .search-controls-row {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 10px;
+  }
+
+  .smart-search-container,
+  .controls-right-side {
+    grid-column: 1;
+  }
+
+  .controls-right-side {
+    flex-wrap: wrap;
+    grid-row: 2;
+    justify-content: center;
+    justify-self: center;
+  }
+
+  .home-pill,
+  .settings-user-pill {
+    box-sizing: border-box;
+  }
+
+  .results-item {
+    flex-direction: column;
+  }
+
+  .results-item .result-profile {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .query-column,
+  .results-column {
+    width: 100%;
+  }
+
+  .info-row {
+    margin: 5px 0;
+    padding: 5px 10px;
+  }
+
+  .info-row .label {
+    min-width: 0;
+  }
+}

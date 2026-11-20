@@ -1,0 +1,25 @@
+# Version control
+.git/
+.gitignore
+
+# Python bytecode and caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+.eggs/
+
+# Test and dev artefacts
+tests/
+token.json
+.env
+.env.*
+
+# Documentation (not needed at runtime)
+*.md
+GEMINI.md
+
+# Local data — mounted as volumes at runtime, never baked into the image
+sm-data/
