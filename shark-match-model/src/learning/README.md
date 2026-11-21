@@ -8,7 +8,7 @@ The `src/learning` package trains re-identification models: the trainer, its los
 | --- | --- |
 | `augmented_dataset.py` | `AugmentedDataset`: wraps a base dataset to produce augmented views, with retry and fallback to the original image |
 | `pk_sampler.py` | `PKSampler`: yields batches of P identities with K images each, oversampling small identities |
-| `trainer/new_trainer.py` | `RobustTrainer`, the training strategies, early stopping, per-configuration orchestration, and the training command |
+| `trainer/trainer.py` | `RobustTrainer`, the training strategies, early stopping, per-configuration orchestration, and the training command |
 | `loss/triplet.py` | `create_triplet_loss`: builds a triplet loss with `batch_hard` or `semi_hard` mining |
 | `evaluator/evaluators.py` | `compute_embeddings` and `hits_at_k`, which score a checkpoint on the validation split |
 
@@ -25,13 +25,13 @@ The `src/learning` package trains re-identification models: the trainer, its los
 Run from the repository root; `--help` lists every option.
 
 ```bash
-python3 -m src.learning.trainer.new_trainer --help
+python3 -m src.learning.trainer.trainer --help
 ```
 
 A typical run names an output model, an annotations version, and one or more configuration keys from `src/config/config.py`. Add `--dry-run` to validate the setup without training.
 
 ```bash
-python3 -m src.learning.trainer.new_trainer \
+python3 -m src.learning.trainer.trainer \
     --model-name MODEL_NAME \
     --annotations-version ANNOTATIONS_VERSION \
     --configs CONFIG_KEY

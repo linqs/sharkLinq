@@ -39,7 +39,7 @@ def test_pipeline_children_run_as_modules_from_the_repository_root():
     assert modules == [
         "src.cli.convert_images",
         "src.cli.convert_data",
-        "src.learning.trainer.new_trainer",
+        "src.learning.trainer.trainer",
         "src.retrieval.embeddings",
         "src.retrieval.evaluation",
     ]
@@ -100,7 +100,7 @@ def _training_command(extra_args):
         *extra_args,
     ])
     return next(call.args[0] for call in calls
-                if "src.learning.trainer.new_trainer" in call.args[0])
+                if "src.learning.trainer.trainer" in call.args[0])
 
 
 def test_training_step_keeps_the_overwrite_guard_unless_asked():

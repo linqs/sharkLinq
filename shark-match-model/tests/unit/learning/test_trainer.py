@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 
 import src.config.config
-import src.learning.trainer.new_trainer as new_trainer
+import src.learning.trainer.trainer as trainer_mod
 import src.models.arcface_heads
 from src.core import utils
 from src.core import constants
@@ -53,7 +53,7 @@ class _MockModel(nn.Module):
         return self.linear(x.flatten(1))
 
 
-class _MockStrategy(new_trainer.TrainingStrategy):
+class _MockStrategy(trainer_mod.TrainingStrategy):
     """Run the model and return the sum of embeddings as a differentiable loss."""
     def process_batch(self, model, batch, device):
         images, _ = batch
@@ -94,7 +94,7 @@ class TestNewTrainer(unittest.TestCase):
 
     def _make_trainer(self, *, config=None):
         config = config or _make_config(evaluator=self.evaluator)
-        return new_trainer.RobustTrainer(
+        return trainer_mod.RobustTrainer(
             _MockModel(),
             _MockStrategy(),
             self.device,
@@ -337,18 +337,18 @@ class TestArcFaceValidationLabels(unittest.TestCase):
 
     def test_seen_labels_match_the_encoder(self):
         encoder = self._fitted_encoder([10, 20, 30])
-        encoded = new_trainer.encode_labels(encoder, [30, 10, 20, 20])
+        encoded = trainer_mod.encode_labels(encoder, [30, 10, 20, 20])
         self.assertEqual(encoded.tolist(), encoder.transform([30, 10, 20, 20]).tolist())
 
     def test_unseen_labels_get_codes_above_the_trained_range(self):
         encoder = self._fitted_encoder([10, 20, 30])
-        encoded = new_trainer.encode_labels(encoder, [20, 99, 77, 99])
+        encoded = trainer_mod.encode_labels(encoder, [20, 99, 77, 99])
         self.assertEqual(encoded.tolist(), [1, 4, 3, 4])
 
     def test_build_keeps_head_size_and_separates_unseen_identities(self):
         train_ds = _LabelledDataset([5, 5, 6, 6, 7, 7])
         valid_ds = _LabelledDataset([5, 8])
-        model, _, _ = new_trainer.build_model_and_strategy(
+        model, _, _ = trainer_mod.build_model_and_strategy(
             _arcface_config(), torch.device("cpu"), train_ds, valid_ds, [])
 
         self.assertEqual(model.head.out_features, 3)
@@ -357,7 +357,7 @@ class TestArcFaceValidationLabels(unittest.TestCase):
     def test_build_without_validation_set_does_not_warn(self):
         train_ds = _LabelledDataset([5, 5, 6, 6, 7, 7])
         with patch("builtins.print") as mock_print:
-            new_trainer.build_model_and_strategy(
+            trainer_mod.build_model_and_strategy(
                 _arcface_config(), torch.device("cpu"), train_ds, None, [])
 
         printed = " ".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
@@ -392,7 +392,7 @@ class TestLoraResume(unittest.TestCase):
             if "lora_B" in name:
                 nn.init.constant_(param, 0.5)
 
-        trainer = new_trainer.RobustTrainer(
+        trainer = trainer_mod.RobustTrainer(
             saved, _MockStrategy(), torch.device("cpu"), _make_config(),
             train_dataset=MagicMock(), valid_dataset=MagicMock())
         with tempfile.TemporaryDirectory() as checkpoint_dir:
@@ -417,10 +417,10 @@ class TestConfigSelectionFailures(unittest.TestCase):
     """Unknown or invalid configurations stop the run with a non-zero exit."""
 
     def test_unknown_config_key_exits_nonzero(self):
-        with patch("sys.argv", ["new_trainer", "--configs", "no_such_config"]), \
-                patch.object(new_trainer, "run_single_config") as run_single:
+        with patch("sys.argv", ["trainer", "--configs", "no_such_config"]), \
+                patch.object(trainer_mod, "run_single_config") as run_single:
             with self.assertRaises(SystemExit) as raised:
-                new_trainer.main()
+                trainer_mod.main()
 
         self.assertEqual(raised.exception.code, 1)
         run_single.assert_not_called()
@@ -429,7 +429,7 @@ class TestConfigSelectionFailures(unittest.TestCase):
         args = MagicMock(dry_run=True)
         with patch.object(utils, "ensure_config_schema", side_effect=ValueError("bad")):
             with self.assertRaises(SystemExit) as raised:
-                new_trainer.run_single_config("test_config", "run", args)
+                trainer_mod.run_single_config("test_config", "run", args)
 
         self.assertEqual(raised.exception.code, 1)
 
@@ -437,14 +437,14 @@ class TestConfigSelectionFailures(unittest.TestCase):
         args = MagicMock(dry_run=True)
         for passed, expected in ((False, 1), (True, None)):
             with self.subTest(passed=passed):
-                with patch.object(new_trainer, "perform_dry_run_checks", return_value=passed), \
-                        patch.object(new_trainer, "print_config_summary"), \
+                with patch.object(trainer_mod, "perform_dry_run_checks", return_value=passed), \
+                        patch.object(trainer_mod, "print_config_summary"), \
                         contextlib.redirect_stdout(io.StringIO()):
                     if expected is None:
-                        new_trainer.run_single_config("test_config", "run", args)
+                        trainer_mod.run_single_config("test_config", "run", args)
                     else:
                         with self.assertRaises(SystemExit) as raised:
-                            new_trainer.run_single_config("test_config", "run", args)
+                            trainer_mod.run_single_config("test_config", "run", args)
                         self.assertEqual(raised.exception.code, expected)
 
 
@@ -455,17 +455,17 @@ class TestEmptyTrainingSet(unittest.TestCase):
         config = _make_config()
         args = MagicMock(annotations_version=None, split_strategy="train-test")
         with patch.object(utils, "get_annotation_paths", return_value=("train.csv", "valid.csv")), \
-                patch.object(new_trainer.src.individual_dataset, "IndividualDataset",
+                patch.object(trainer_mod.src.individual_dataset, "IndividualDataset",
                              return_value=[]):
             with self.assertRaisesRegex(ValueError, "--split-strategy none"):
-                new_trainer.setup_datasets_and_augmentations(config, {}, args)
+                trainer_mod.setup_datasets_and_augmentations(config, {}, args)
 
 
 class TestResumeFailures(unittest.TestCase):
     """A checkpoint that cannot be fully restored stops the run instead of training from base weights."""
 
     def _save_checkpoint(self, model, checkpoint_dir):
-        new_trainer.RobustTrainer(
+        trainer_mod.RobustTrainer(
             model, _MockStrategy(), torch.device("cpu"), _make_config(),
             train_dataset=MagicMock(), valid_dataset=MagicMock()).save_model(checkpoint_dir, "best")
 
@@ -494,9 +494,9 @@ class TestHelpText(unittest.TestCase):
 
     def _help_text(self):
         output = io.StringIO()
-        with patch("sys.argv", ["new_trainer", "--help"]), contextlib.redirect_stdout(output):
+        with patch("sys.argv", ["trainer", "--help"]), contextlib.redirect_stdout(output):
             with self.assertRaises(SystemExit):
-                new_trainer.main()
+                trainer_mod.main()
         return " ".join(output.getvalue().split())
 
     def test_help_examples_name_real_configs(self):
@@ -521,7 +521,7 @@ class TestDryRunResumeCheck(unittest.TestCase):
         output = io.StringIO()
         with patch.object(constants, "TRAINED_MODELS_DIR", trained_models_dir), \
                 contextlib.redirect_stdout(output):
-            passed = new_trainer.perform_dry_run_checks("test_config", "save-dir", args)
+            passed = trainer_mod.perform_dry_run_checks("test_config", "save-dir", args)
         return passed, output.getvalue()
 
     def test_missing_resume_source_fails_the_dry_run(self):
@@ -544,7 +544,7 @@ class TestDryRunResumeCheck(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             checkpoint_dir = os.path.join(root, "model", "config")
             os.makedirs(checkpoint_dir)
-            new_trainer.RobustTrainer(
+            trainer_mod.RobustTrainer(
                 _lora_model(), _MockStrategy(), torch.device("cpu"), _make_config(),
                 train_dataset=MagicMock(), valid_dataset=MagicMock()
             ).save_model(checkpoint_dir, "best")
@@ -567,7 +567,7 @@ class TestEpochsOverride(unittest.TestCase):
 
     def test_matching_t_max_follows_the_new_epoch_count(self):
         entry = self._entry(epochs=50, t_max=50)
-        overridden = new_trainer.apply_epochs_override(entry, 3)
+        overridden = trainer_mod.apply_epochs_override(entry, 3)
         self.assertEqual(overridden["training"]["epochs"], 3)
         self.assertEqual(overridden["training"]["scheduler"]["options"]["T_max"], 3)
 
@@ -575,7 +575,7 @@ class TestEpochsOverride(unittest.TestCase):
         entry = self._entry(epochs=50, t_max=20)
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
-            overridden = new_trainer.apply_epochs_override(entry, 3)
+            overridden = trainer_mod.apply_epochs_override(entry, 3)
         self.assertEqual(overridden["training"]["epochs"], 3)
         self.assertEqual(overridden["training"]["scheduler"]["options"]["T_max"], 20)
         self.assertIn("T_max", output.getvalue())
@@ -583,27 +583,27 @@ class TestEpochsOverride(unittest.TestCase):
     def test_config_without_a_scheduler_only_changes_epochs(self):
         entry = copy.deepcopy(src.config.config.CONFIGS["test_config"])
         entry["training"]["scheduler"] = None
-        overridden = new_trainer.apply_epochs_override(entry, 2)
+        overridden = trainer_mod.apply_epochs_override(entry, 2)
         self.assertEqual(overridden["training"]["epochs"], 2)
         self.assertIsNone(overridden["training"]["scheduler"])
 
     def test_zero_epochs_keeps_a_valid_t_max(self):
         entry = self._entry(epochs=50, t_max=50)
-        overridden = new_trainer.apply_epochs_override(entry, 0)
+        overridden = trainer_mod.apply_epochs_override(entry, 0)
         self.assertEqual(overridden["training"]["epochs"], 0)
         self.assertEqual(overridden["training"]["scheduler"]["options"]["T_max"], 50)
 
     def test_original_entry_is_not_modified(self):
         entry = self._entry(epochs=50, t_max=50)
-        new_trainer.apply_epochs_override(entry, 3)
+        trainer_mod.apply_epochs_override(entry, 3)
         self.assertEqual(entry["training"]["epochs"], 50)
         self.assertEqual(entry["training"]["scheduler"]["options"]["T_max"], 50)
 
     def test_negative_epochs_are_rejected_by_the_parser(self):
-        with patch("sys.argv", ["new_trainer", "--epochs", "-1"]), \
+        with patch("sys.argv", ["trainer", "--epochs", "-1"]), \
                 contextlib.redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit) as raised:
-                new_trainer.main()
+                trainer_mod.main()
         self.assertEqual(raised.exception.code, 2)
 
     def test_run_trains_and_records_the_overridden_epochs(self):
@@ -611,14 +611,14 @@ class TestEpochsOverride(unittest.TestCase):
                          overwrite=False)
         with tempfile.TemporaryDirectory() as root, \
                 patch.object(constants, "TRAINED_MODELS_DIR", root), \
-                patch.object(new_trainer, "setup_datasets_and_augmentations",
+                patch.object(trainer_mod, "setup_datasets_and_augmentations",
                              return_value=(MagicMock(), MagicMock(), [])), \
-                patch.object(new_trainer, "build_model_and_strategy",
+                patch.object(trainer_mod, "build_model_and_strategy",
                              return_value=(MagicMock(), MagicMock(), MagicMock())), \
-                patch.object(new_trainer, "RobustTrainer") as trainer_class, \
+                patch.object(trainer_mod, "RobustTrainer") as trainer_class, \
                 patch.object(utils, "notify_completion"), \
                 contextlib.redirect_stdout(io.StringIO()):
-            new_trainer.run_single_config("test_config", "run", args)
+            trainer_mod.run_single_config("test_config", "run", args)
             with open(os.path.join(root, "run", "test_config", "config.json"),
                       encoding="utf-8") as saved:
                 saved_epochs = json.load(saved)["training"]["epochs"]
@@ -652,12 +652,12 @@ class TestOverwriteGuard(unittest.TestCase):
         return directory
 
     def _run_main(self, *extra):
-        argv = ["new_trainer", "--model-name", "run", "--configs", "test_config", *extra]
+        argv = ["trainer", "--model-name", "run", "--configs", "test_config", *extra]
         output = io.StringIO()
-        with patch("sys.argv", argv), patch.object(new_trainer, "run_single_config") as run_single, \
+        with patch("sys.argv", argv), patch.object(trainer_mod, "run_single_config") as run_single, \
                 contextlib.redirect_stdout(output):
             try:
-                new_trainer.main()
+                trainer_mod.main()
                 code = 0
             except SystemExit as raised:
                 code = raised.code
@@ -699,11 +699,11 @@ class TestOverwriteGuard(unittest.TestCase):
 
     def test_conflict_in_a_later_config_stops_before_any_training(self):
         self._make_dir("run", config="vit_arcface", files=["best-backbone-state.pt"])
-        argv = ["new_trainer", "--model-name", "run", "--configs", "test_config", "vit_arcface"]
-        with patch("sys.argv", argv), patch.object(new_trainer, "run_single_config") as run_single, \
+        argv = ["trainer", "--model-name", "run", "--configs", "test_config", "vit_arcface"]
+        with patch("sys.argv", argv), patch.object(trainer_mod, "run_single_config") as run_single, \
                 contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(SystemExit) as raised:
-                new_trainer.main()
+                trainer_mod.main()
         self.assertEqual(raised.exception.code, 1)
         run_single.assert_not_called()
 
@@ -724,25 +724,25 @@ class TestOverwriteGuard(unittest.TestCase):
         run_single.assert_called_once()
 
     def test_training_every_config_skips_the_test_config(self):
-        argv = ["new_trainer", "--model-name", "run"]
-        with patch("sys.argv", argv), patch.object(new_trainer, "run_single_config") as run_single, \
+        argv = ["trainer", "--model-name", "run"]
+        with patch("sys.argv", argv), patch.object(trainer_mod, "run_single_config") as run_single, \
                 contextlib.redirect_stdout(io.StringIO()):
-            new_trainer.main()
+            trainer_mod.main()
         trained = [call.args[0] for call in run_single.call_args_list]
         self.assertNotIn("test_config", trained)
         self.assertIn("miewid_arcface", trained)
         self.assertEqual(len(trained), len(src.config.config.CONFIGS) - 1)
 
     def _run_single_config(self, args, on_resume=None):
-        with patch.object(new_trainer, "setup_datasets_and_augmentations",
+        with patch.object(trainer_mod, "setup_datasets_and_augmentations",
                           return_value=(MagicMock(), MagicMock(), [])), \
-                patch.object(new_trainer, "build_model_and_strategy",
+                patch.object(trainer_mod, "build_model_and_strategy",
                              return_value=(MagicMock(), MagicMock(), MagicMock())), \
                 patch.object(utils, "load_model_for_resume", side_effect=on_resume), \
-                patch.object(new_trainer, "RobustTrainer"), \
+                patch.object(trainer_mod, "RobustTrainer"), \
                 patch.object(utils, "notify_completion"), \
                 contextlib.redirect_stdout(io.StringIO()):
-            new_trainer.run_single_config("test_config", "run", args)
+            trainer_mod.run_single_config("test_config", "run", args)
 
     def test_overwrite_clears_the_previous_run_but_keeps_unknown_files(self):
         directory = self._make_dir("run", files=[
@@ -778,7 +778,7 @@ class TestOverwriteGuard(unittest.TestCase):
                          overwrite=False)
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
-            new_trainer.perform_dry_run_checks("test_config", directory, args)
+            trainer_mod.perform_dry_run_checks("test_config", directory, args)
         self.assertRegex(output.getvalue(), r"Model Save Directory.*--overwrite")
 
 
@@ -788,7 +788,7 @@ class TestDataLoaderWorkers(unittest.TestCase):
     def _kwargs(self, num_workers):
         config = _make_config()
         config.training.num_workers = num_workers
-        return new_trainer._build_dataloader_kwargs(config)  # pylint: disable=protected-access
+        return trainer_mod._build_dataloader_kwargs(config)  # pylint: disable=protected-access
 
     def test_workers_are_spawned_not_forked(self):
         kwargs = self._kwargs(2)

@@ -14,7 +14,7 @@ import torch.utils.data
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.learning.trainer.new_trainer import RobustTrainer, ContrastiveStrategy, SupervisedStrategy, ArcFaceModelWrapper
+from src.learning.trainer.trainer import RobustTrainer, ContrastiveStrategy, SupervisedStrategy, ArcFaceModelWrapper
 import src.config.config_schema
 from src.core import utils
 
@@ -131,7 +131,7 @@ def test_overfit_batch():
     head = MockHead(backbone.num_features, 2).to(device)
     
     # Loss is typically inside wrapper for ArcFace, but here we use simple CrossEntropy.
-    # Using SupervisedStrategy from new_trainer.
+    # Using SupervisedStrategy from trainer.
     strategy = SupervisedStrategy() 
     
     class SimpleClassifier(nn.Module):

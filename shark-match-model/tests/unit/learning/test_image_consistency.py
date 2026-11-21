@@ -66,7 +66,7 @@ class TestImageConsistency(unittest.TestCase):
         loaded during inference (embeddings generation).
         """
         
-        # Logic mirroring new_trainer.py.
+        # Logic mirroring trainer.py.
         
         # Load config (simulated).
         train_config = self.config_data

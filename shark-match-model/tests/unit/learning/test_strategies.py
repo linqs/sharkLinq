@@ -8,7 +8,7 @@ import unittest
 import torch
 import torch.nn as nn
 from unittest.mock import MagicMock
-from src.learning.trainer.new_trainer import (
+from src.learning.trainer.trainer import (
     ContrastiveStrategy, SupervisedStrategy, metric_learning_collate
 )
 

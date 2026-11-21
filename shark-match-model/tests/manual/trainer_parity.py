@@ -21,7 +21,7 @@ import src.learning.augmented_dataset
 import src.learning.pk_sampler
 import src.models.arcface_heads
 from src.core import utils
-from src.learning.trainer import new_trainer
+from src.learning.trainer import trainer as trainer_mod
 
 SEED = 42
 
@@ -188,11 +188,11 @@ def build_scenario(loss_name, device, single_view=False, early_stop=False,
                           pk_mismatch=pk_mismatch, no_pk=no_pk,
                           partial_accum=partial_accum)
     base_dataset = PseudoIndividualDataset()
-    augmentations = new_trainer.setup_augmentations(
+    augmentations = trainer_mod.setup_augmentations(
         {"augmentations": src.config.config.AUGMENTATIONS})
 
     if via_build:
-        model, strategy, loader = new_trainer.build_model_and_strategy(
+        model, strategy, loader = trainer_mod.build_model_and_strategy(
             config, device, base_dataset, base_dataset, augmentations)
         return config, model, strategy, loader, base_dataset
 
@@ -207,7 +207,7 @@ def build_scenario(loss_name, device, single_view=False, early_stop=False,
         "batch_size": config.training.batch_size,
         "num_workers": 0,            # pinned: worker seeding is a variance source.
         "pin_memory": False,
-        "collate_fn": new_trainer.metric_learning_collate,
+        "collate_fn": trainer_mod.metric_learning_collate,
     }
 
     backbone = TinyBackbone().to(device)
@@ -217,15 +217,15 @@ def build_scenario(loss_name, device, single_view=False, early_stop=False,
             in_features=backbone.get_output_dim(),
             out_features=NUM_IDENTITIES,
         ).to(device)
-        model = new_trainer.ArcFaceModelWrapper(
+        model = trainer_mod.ArcFaceModelWrapper(
             backbone, head, torch.nn.CrossEntropyLoss())
-        strategy = new_trainer.SupervisedStrategy()
+        strategy = trainer_mod.SupervisedStrategy()
         generator = torch.Generator().manual_seed(SEED)
         loader = torch.utils.data.DataLoader(
             train_dataset, shuffle=True, generator=generator, **loader_kwargs)
     else:
         loss_fn = config.training.loss.constructor(**config.training.loss.options)
-        strategy = new_trainer.ContrastiveStrategy(loss_fn=loss_fn)
+        strategy = trainer_mod.ContrastiveStrategy(loss_fn=loss_fn)
         model = torch.nn.Sequential(backbone, torch.nn.Identity()).to(device)
         sampler = src.learning.pk_sampler.PKSampler(
             base_dataset,
@@ -273,7 +273,7 @@ def run_scenario(name, device, workdir, **options):
 
     strategy.process_batch = recording_process_batch
 
-    trainer = new_trainer.RobustTrainer(
+    trainer = trainer_mod.RobustTrainer(
         model, strategy, device, config,
         train_dataset=base_dataset,
         valid_dataset=base_dataset,

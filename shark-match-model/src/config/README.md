@@ -22,7 +22,7 @@ python3 -c "import src.config.config as c; print(*c.CONFIGS)"
 ## Adding or Changing a Configuration
 
 1. Add or edit an entry in `CONFIGS` in `config.py`; every value must satisfy `FullConfig`.
-2. Validate it with `python3 -m src.learning.trainer.new_trainer --configs CONFIG_KEY --dry-run`, which checks the configuration and data paths without training.
+2. Validate it with `python3 -m src.learning.trainer.trainer --configs CONFIG_KEY --dry-run`, which checks the configuration and data paths without training.
 3. Keep names and values in `config.py` only; other documents refer to the registry instead of copying it.
 
 ## Boundaries and Dependencies

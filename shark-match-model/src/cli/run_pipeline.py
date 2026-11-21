@@ -140,7 +140,7 @@ def main():
     # 4. Train Model
     if not args.skip_train:
         cmd_train = [
-            python_exec, "-m", "src.learning.trainer.new_trainer",
+            python_exec, "-m", "src.learning.trainer.trainer",
             "--model-name", model_name,
             "--annotations-version", annotations_version,
         ]

@@ -214,7 +214,7 @@ against the generated annotations. Configuration names and values intentionally
 live in that source registry rather than in this README.
 
 ```bash
-python3 -m src.learning.trainer.new_trainer \
+python3 -m src.learning.trainer.trainer \
     --model-name walkthrough-model \
     --annotations-version walkthrough-annotations \
     --configs CONFIG_KEY

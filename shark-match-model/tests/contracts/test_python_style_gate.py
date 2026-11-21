@@ -16,7 +16,7 @@ def test_default_lint_targets_reach_modules_outside_packages(monkeypatch):
 
     for expected in (
         "src/core/path_utils.py",
-        "src/learning/trainer/new_trainer.py",
+        "src/learning/trainer/trainer.py",
         "src/data_scripts/analyze_data.py",
         "tests/unit/learning/test_arcface.py",
         "tests/manual/trainer_parity.py",

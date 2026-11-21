@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 import torch
-from src.learning.trainer.new_trainer import EarlyStopping
+from src.learning.trainer.trainer import EarlyStopping
 
 class TestEarlyStopping(unittest.TestCase):
     def test_early_stopping_trigger(self):

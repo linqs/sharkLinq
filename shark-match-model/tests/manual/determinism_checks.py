@@ -22,7 +22,7 @@ def _collect_batches(consume_draws, num_workers, seed=None):
     import src.learning.augmented_dataset
     import src.learning.pk_sampler
     import trainer_parity as tp
-    from src.learning.trainer import new_trainer as nt
+    from src.learning.trainer import trainer as nt
 
     tp.seed_all(seed if seed is not None else constants.RANDOM_SEED)
     base = tp.PseudoIndividualDataset()
@@ -143,7 +143,7 @@ def _train_and_capture_batches(extra_construction_draws):
     import tempfile
 
     import trainer_parity as tp
-    from src.learning.trainer import new_trainer as nt
+    from src.learning.trainer import trainer as nt
 
     tp.seed_all()
     config, model, strategy, loader, dataset = tp.build_scenario(
@@ -201,7 +201,7 @@ def _train_on_device(device, disable_amp):
     import tempfile
 
     import trainer_parity as tp
-    from src.learning.trainer import new_trainer as nt
+    from src.learning.trainer import trainer as nt
 
     tp.seed_all()
     if device.type == "mps":

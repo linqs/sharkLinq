@@ -1063,7 +1063,7 @@ def main():
                     "defined in src/config/config.py.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Examples:\n"
-               "  python3 -m src.learning.trainer.new_trainer "
+               "  python3 -m src.learning.trainer.trainer "
                "--model-name test-model "
                "--annotations-version test-annotations "
                "--configs miewid_arcface\n")

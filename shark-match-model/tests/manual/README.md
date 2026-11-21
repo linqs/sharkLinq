@@ -6,7 +6,7 @@ hand when you need them.
 
 ## `trainer_parity.py`
 
-Proves that a change to `src/learning/trainer/new_trainer.py` did not alter what
+Proves that a change to `src/learning/trainer/trainer.py` did not alter what
 the training pipeline actually does.
 
 ### Workflow Around a Refactor
@@ -99,13 +99,13 @@ The six stages, reported in order:
 
 ### Coverage
 
-Measured line coverage of `new_trainer.py` is **~62%**; most of the remainder is
+Measured line coverage of `trainer.py` is **~62%**; most of the remainder is
 `main`/argparse, `print_config_summary`, `perform_dry_run_checks` and
 `run_single_config`. Re-measure with:
 
 ```bash
 COVERAGE_STATE="$(mktemp)"
-python3 -m coverage run --branch --source=src.learning.trainer.new_trainer \
+python3 -m coverage run --branch --source=src.learning.trainer.trainer \
     tests/manual/trainer_parity.py --save "$COVERAGE_STATE"
 python3 -m coverage report -m
 rm "$COVERAGE_STATE"

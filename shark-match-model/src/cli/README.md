@@ -29,7 +29,7 @@ python3 -m src.cli.run_tensorboard --help
 1. Format images (`src.cli.convert_images`).
 2. Prepare annotations (`src.cli.convert_data`).
 3. Validate data (`src/data_scripts/analyze_data.py`, run by path).
-4. Train (`src.learning.trainer.new_trainer`).
+4. Train (`src.learning.trainer.trainer`).
 5. Generate embeddings (`src.retrieval.embeddings`); `--stacked` adds multimodal and PSL artifacts and needs the PSL setup in `src/psl/README.md`.
 6. Evaluate embeddings (`src.retrieval.evaluation`).
 
