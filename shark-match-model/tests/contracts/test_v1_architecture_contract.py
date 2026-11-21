@@ -1,4 +1,4 @@
-"""Executable contract markers and strict failure expectations for the approved V1 service boundary."""
+"""Checks for V1 API shapes, packaging, git hygiene, and documentation rules."""
 
 import ast
 import os
@@ -20,7 +20,7 @@ from tests.tools import run_tests
 
 MATCHER_ROOT = Path(__file__).resolve().parents[2]
 _MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
-# Internal and historical records open with this banner and are exempt from current-documentation checks.
+# Docs opening with a status banner are exempt from current-documentation checks.
 _STATUS_BANNER = re.compile(r"\A#[^\n]*\n+> \*\*Status:\*\*")
 _ENVIRONMENT_NAME = re.compile(r"\bSHARK_[A-Z0-9_]+\b")
 _SERVICE_KEY_ASSIGNMENT = re.compile(r"SHARK_INFERENCE_API_KEY=(\S+)")
@@ -604,7 +604,7 @@ def test_matcher_source_archive_contains_setup_inputs_and_runtime_files(
 
 
 def test_matcher_release_version_is_synchronized(matcher_wheel):
-    """Runtime and distribution metadata use the approved V1 version."""
+    """Package version matches 1.0.0 in both src.__version__ and wheel metadata."""
     metadata = _wheel_metadata(matcher_wheel).splitlines()
 
     assert src.__version__ == "1.0.0"
@@ -662,7 +662,7 @@ def test_matcher_default_install_excludes_optional_dependencies(matcher_wheel):
 
 
 def test_matcher_wheel_dependencies_match_requirement_authorities(matcher_wheel):
-    """Wheel dependency groups derive from their authoritative requirement files."""
+    """Wheel dependencies and extras match the requirements/*.txt files."""
     metadata = _wheel_metadata(matcher_wheel)
     analysis = _requirement_file_names(
         MATCHER_ROOT / "requirements" / "requirements-analysis.txt"
@@ -693,7 +693,7 @@ def test_matcher_wheel_dependencies_match_requirement_authorities(matcher_wheel)
 
 
 def test_matcher_runner_requests_pytest_skip_summary():
-    """The matcher runner reports skips without obsolete data overrides."""
+    """Test runner passes -ra to pytest and omits removed data-path flags."""
     args = SimpleNamespace(
         py_style=False,
         run=None,
@@ -710,7 +710,7 @@ def test_matcher_runner_requests_pytest_skip_summary():
 
 
 def test_matcher_workflow_uses_supported_matrix_and_owned_commands():
-    """CI delegates to repository authorities across the supported V1 matrix."""
+    """CI workflow runs the repo test runner across Linux and macOS."""
     workflow_source = (
         MATCHER_ROOT / ".github/workflows/python-tests.yml"
     ).read_text(encoding="utf-8")
@@ -730,7 +730,7 @@ def test_matcher_workflow_uses_supported_matrix_and_owned_commands():
 
 
 def test_matcher_ignore_rules_cover_publication_artifacts():
-    """Matcher ignore rules exclude generated and sensitive publication paths."""
+    """Git ignore rules exclude build outputs, caches, weights, and secret files."""
     ignored_paths = {
         ".coverage",
         ".coverage.unit",
@@ -770,7 +770,7 @@ def test_matcher_ignore_rules_cover_publication_artifacts():
 
 
 def test_matcher_tracked_files_exclude_publication_artifacts():
-    """Matcher tracked files contain no generated or sensitive artifacts."""
+    """Git tracked files contain no build outputs, weights, or secret files."""
     tracked_paths = _git_tracked_paths(MATCHER_ROOT)
 
     allowed_paths = {"containerization/.env.example"}

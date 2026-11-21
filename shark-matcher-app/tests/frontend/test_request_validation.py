@@ -55,8 +55,14 @@ INVALID_VALUE_CASES = (
     ("object/get", {"table": 5}, "table"),
     ("media/filter", {"locations": {"x": 1}}, "locations"),
     ("action/filter", {"keywords": [1, 2]}, "keywords"),
+    ("action/filter", {"original": {"x": 1}}, "original"),
+    ("action/filter", {"final": "abc"}, "final"),
     ("proposal/filter", {"page": "many"}, "page"),
+    ("proposal/filter", {"original": {"x": 1}}, "original"),
+    ("proposal/filter", {"final": "abc"}, "final"),
     ("proposal/post", {"action": "create", "original": {"x": 1}, "final": {"id": 1}}, "original"),
+    ("proposal/post", {"action": "create", "original": "", "final": {"id": 1}}, "original"),
+    ("proposal/post", {"action": "create", "original": None, "final": 123}, "final"),
     ("media/post", {"name": "abc"}, "hash"),
 )
 
@@ -176,6 +182,24 @@ class TestRequestValidation(unittest.TestCase):
                 status, response = self._post(endpoint, payload)
                 self.assertEqual(status, http.HTTPStatus.BAD_REQUEST)
                 self.assertIn(field, response["message"])
+
+    def test_proposal_and_action_filters_accept_empty_and_id_object_filters(self):
+        """History and proposal search accept empty strings and integer IDs for original and final."""
+        base_payload = {
+            "min_time": "", "max_time": "", "object": "", "action": "",
+            "original": "", "final": "", "author": "", "ids": "", "keywords": "",
+            "paginate": True, "page": 1, "page_size": 50,
+            "attribute": "time", "order": "descending",
+        }
+        endpoints = (
+            ("action/filter", base_payload),
+            ("proposal/filter", {**base_payload, "status": ""}),
+        )
+        for endpoint, payload in endpoints:
+            for original, final in (("", ""), (None, None), (42, "42"), (-1, "-1")):
+                with self.subTest(endpoint=endpoint, original=original, final=final):
+                    status, _ = self._post(endpoint, {**payload, "original": original, "final": final})
+                    self.assertEqual(status, http.HTTPStatus.OK)
 
 
 if __name__ == "__main__":

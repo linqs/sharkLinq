@@ -28,7 +28,7 @@ def test_partition_strategy_full_clusters():
     ids = list(range(100))
     labels = []
     for i in range(10):
-        labels.extend([i] * 10)  # 10 individuals × 10 images.
+        labels.extend([i] * 10)  # 10 individuals x 10 images.
 
     train_idx, test_idx = src.cli.convert_data._partition_data(
         ids, labels, full_clusters_removed=True, test_split_ratio=0.2
@@ -42,16 +42,7 @@ def test_partition_strategy_full_clusters():
 
 
 def test_partition_strategy_temporal(csv_convert_data):
-    """Verify newest individuals go to test when using temporal split.
-
-    Fixture provides media IDs 0–14:
-      0–4   -> time 100 (oldest,  label 0)
-      5–9   -> time 200 (middle,  label 1)
-      10–14 -> time 300 (newest,  label 2)
-
-    With ratio 0.2 × 15 = 3 images target, the newest individual
-    (label 2, 5 images) is moved to the test set.
-    """
+    """Verify temporal split moves the newest individual (label 2, 5 images) to test."""
     ids = list(range(15))
     labels = [0]*5 + [1]*5 + [2]*5
 

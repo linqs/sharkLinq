@@ -22,11 +22,7 @@ VALID_EXTENSIONS = (".jpeg", ".jpg", ".png")
 
 
 def resolve_image(name):
-    """Return the on-disk filename for `name`, trying known extensions.
-
-    Raises rather than warning: the original appended an unresolved name and
-    carried on, which silently misaligned every later index.
-    """
+    """Return the on-disk filename for `name`, trying known extensions, or raise FileNotFoundError."""
     if os.path.exists(os.path.join(constants.IMAGES_DIR, name)):
         return name
     for ext in VALID_EXTENSIONS:
@@ -58,12 +54,7 @@ def build_dataset(model_name, annotations_path, device):
 
 
 def generate_embeddings(model_name, annotations_path, device):
-    """Embed the images through the production path.
-
-    Deliberately delegates to `EMBEDDING_BATCH_SIZE` and `_compute_embeddings`
-    rather than repeating them: a local copy is exactly how this tool drifted
-    away from production in the first place.
-    """
+    """Embed images using the production batch size and `_compute_embeddings` helper."""
     is_finetuned, config_path, _, _ = utils.get_model_metadata(model_name)
     dataset = build_dataset(model_name, annotations_path, device)
     model = utils.load_embedding_model(model_name, is_finetuned, config_path, device)
@@ -82,9 +73,7 @@ def load_stored_embeddings(model_name, image_names, embeddings_name=None):
                 "model": model_name, "retrieval_mode": "baseline",
                 "rerank": "none"}
     retriever = src.retrieval.retrieval.Retriever(preload_models=[spec])
-    # Deliberate protected access: _get_model_data is where filenames and
-    # embeddings live, and there is no public accessor for them. The retrieval
-    # unit tests reach for it the same way.
+    # Access internal model data directly because Retriever has no public accessor for raw embeddings.
     data = retriever._get_model_data(model_name)  # pylint: disable=protected-access
     if not data:
         raise RuntimeError(
@@ -106,11 +95,7 @@ def load_stored_embeddings(model_name, image_names, embeddings_name=None):
 
 
 def get_processed_images(model_name, annotations_path, device):
-    """Return the preprocessed image tensors, before any model runs.
-
-    Separates "the two models preprocess differently" from "the two models
-    embed differently", which the embedding comparison alone cannot do.
-    """
+    """Return preprocessed image tensors to isolate preprocessing differences from model differences."""
     dataset = build_dataset(model_name, annotations_path, device)
     loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
     batches = [(b[0] if isinstance(b, (list, tuple)) else b) for b in loader]

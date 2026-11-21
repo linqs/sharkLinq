@@ -1,4 +1,4 @@
-"""Stable cross-repository contracts used by the inference service."""
+"""Shared data schemas for snapshots, embedding generations, and model status."""
 
 from src.contracts.artifacts import (
     ArtifactFileV1,

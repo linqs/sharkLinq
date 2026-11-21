@@ -341,7 +341,8 @@ function buildActionItem(action) {
   const actionTime = Util.timestampToString(action.time);
   const actionIds = {};
   for (const type of ['original', 'final']) {
-    actionIds[type] = action[type] !== -1 ? action[type] : 'Empty';
+    actionIds[type] = (action[type] !== -1 && action[type] !== null && action[type] !== undefined)
+      ? action[type] : 'Empty';
   }
   const {original: actionOriginal, final: actionFinal} = actionIds;
   const resultDescription = Util.renderResultDescription(action.notes);

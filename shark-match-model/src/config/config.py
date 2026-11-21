@@ -131,8 +131,7 @@ def _imagenet_data(image_size):
 TEST_ONLY_CONFIGS = ("test_config",)
 
 CONFIGS = {
-    # MiewID with ArcFace, the production config. The shipped omega_miew_arcface_random checkpoint was trained
-    # before RandomPerspective, RandomRotation, three LoRA targets and disabled early stopping were added.
+    # MiewID with ArcFace (production config).
     "miewid_arcface": {
         "augmentations": MIEW_AUG_BOTH,
         "training": {

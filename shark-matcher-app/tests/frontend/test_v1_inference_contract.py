@@ -1,4 +1,4 @@
-"""Executable contract markers for the app-to-matcher V1 boundary."""
+"""Tests for inference client requests, embedding updates, and startup CLI."""
 
 import ast
 import json
@@ -34,7 +34,7 @@ def _connection(response):
 
 
 def test_app_production_code_does_not_import_matcher_modules():
-    """The app production runtime remains independent from matcher modules."""
+    """Check that app runtime code does not import matcher modules."""
     forbidden = []
     production_roots = (APP_ROOT / "backend", APP_ROOT / "db", APP_ROOT / "frontend")
     for production_root in production_roots:
@@ -55,7 +55,7 @@ def test_app_production_code_does_not_import_matcher_modules():
 
 
 def test_health_request_remains_public():
-    """The liveness request does not disclose or require a service key."""
+    """Check that the health request sends no Authorization header."""
     connection = _connection(_response(200, {"status": "ok"}))
     with patch("http.client.HTTPConnection", return_value=connection):
         with patch.object(
@@ -71,7 +71,7 @@ def test_health_request_remains_public():
 
 
 def test_embedding_generation_sends_snapshot_identifier_only():
-    """The generation call sends only the app-owned snapshot UUID."""
+    """Check that generate_embeddings sends only model_name and snapshot_id."""
     connection = _connection(_response(200, {"status": "ok"}))
     with patch("http.client.HTTPConnection", return_value=connection):
         with patch.object(
@@ -92,7 +92,7 @@ def test_embedding_generation_sends_snapshot_identifier_only():
 
 
 def test_update_handler_reuses_one_snapshot_for_every_loaded_model():
-    """One app-owned database view supplies every model in an update request."""
+    """Check that update_embeddings creates one snapshot and reuses it for all loaded models."""
     project._reset_embeddings_update_job()
     models = ["MiewID Multimodal", "MiewID Image"]
     with patch.object(
@@ -123,7 +123,7 @@ def test_update_handler_reuses_one_snapshot_for_every_loaded_model():
 
 
 def test_update_handler_stops_when_snapshot_publication_fails():
-    """No inference request starts without one completed public snapshot."""
+    """Check that update_embeddings returns 500 and skips inference if snapshot creation fails."""
     project._reset_embeddings_update_job()
     with patch.object(
             inference_snapshot,
@@ -145,7 +145,7 @@ def test_update_handler_stops_when_snapshot_publication_fails():
 
 
 def test_update_handler_starts_asynchronous_generation():
-    """Calling update embeddings asynchronously returns in-progress immediately."""
+    """Check that async update_embeddings starts a background thread and returns in_progress."""
     project._reset_embeddings_update_job()
     with patch("threading.Thread") as mock_thread, patch.object(
             client, "get_stats", return_value={}):
@@ -180,7 +180,7 @@ def test_get_embeddings_status_endpoint_reports_state():
 
 
 def test_dataset_stats_includes_update_in_progress_flag():
-    """Dataset stats includes live update_in_progress boolean."""
+    """Check that dataset stats include update_in_progress and embeddings_update_status."""
     project._reset_embeddings_update_job()
     with patch.object(client, "get_stats", return_value={}):
         stats, status, _ = project.get_dataset_stats(MagicMock(), "/api/data/stats")
@@ -191,7 +191,7 @@ def test_dataset_stats_includes_update_in_progress_flag():
 
 
 def test_stats_request_sends_bearer_credential():
-    """The stats call authenticates with the service credential."""
+    """Check that get_stats sends the Bearer API key."""
     connection = _connection(_response(200, {}))
     api_key = "contract-test-key-that-is-long-enough"
     with patch("http.client.HTTPConnection", return_value=connection):
@@ -208,7 +208,7 @@ def test_stats_request_sends_bearer_credential():
 
 
 def test_unconfigured_protected_request_does_not_open_a_connection():
-    """The client never sends an empty or missing service credential."""
+    """Check that get_stats skips the HTTP request when INFERENCE_API_KEY is empty."""
     connection_class = MagicMock()
     with patch("http.client.HTTPConnection", connection_class):
         with patch.object(
@@ -232,7 +232,7 @@ def test_unconfigured_protected_request_does_not_open_a_connection():
 )
 def test_orchestrator_starts_app_server_without_model_arguments(
         arguments, step_name, test_mode):
-    """Normal and test startup leave model ownership with the matcher."""
+    """Check that shark_identification starts the app server without model arguments."""
     argv = ["shark_identification", *arguments]
     with patch.object(shark_identification.sys, "argv", argv), patch.object(
             shark_identification.app_utils, "print_script_banner"
@@ -258,7 +258,7 @@ def test_orchestrator_starts_app_server_without_model_arguments(
 
 
 def test_orchestrator_repopulates_test_database_from_committed_fixture():
-    """Test-mode repopulation loads the committed CI fixture, so it needs no external data."""
+    """Check that --test --repopulate loads the committed CI test data."""
     argv = ["shark_identification", "--test", "--repopulate"]
     with patch.object(shark_identification.sys, "argv", argv), patch.object(
             shark_identification.app_utils, "print_script_banner"
@@ -281,7 +281,7 @@ def test_orchestrator_repopulates_test_database_from_committed_fixture():
 
 
 def test_orchestrator_rejects_app_side_model_selection():
-    """The retired app model option cannot recreate split model ownership."""
+    """Check that shark_identification rejects the --model flag."""
     argv = ["shark_identification", "--model", "test-model"]
     with patch.object(shark_identification.sys, "argv", argv), patch.object(
             shark_identification.app_utils, "print_script_banner"

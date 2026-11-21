@@ -1,5 +1,5 @@
 # pylint: disable=too-many-lines
-"""Executable contracts for packaging and clean-checkout behavior."""
+"""Tests for packaging, release archives, test runners, and repo conventions."""
 
 import hashlib
 import json
@@ -22,7 +22,7 @@ from tests.tools import javascript_style_tests, run_tests
 
 APP_ROOT = Path(__file__).resolve().parents[2]
 _MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
-# Internal and historical records open with this banner and are exempt from current-documentation checks.
+# Docs starting with a Status banner are exempt from current-doc checks.
 _STATUS_BANNER = re.compile(r"\A#[^\n]*\n+> \*\*Status:\*\*")
 _ENVIRONMENT_NAME = re.compile(r"\bSHARK_[A-Z0-9_]+\b")
 _SERVICE_KEY_ASSIGNMENT = re.compile(r"SHARK_INFERENCE_API_KEY=(\S+)")
@@ -31,7 +31,7 @@ _ANGLE_PLACEHOLDER = re.compile(r"<[a-z][a-z -]*>")
 # Words that Title Case headings leave lowercase unless they come first.
 _SMALL_WORDS = {"a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "into", "nor",
                 "of", "on", "or", "per", "the", "to", "via", "vs", "with"}
-# Matcher settings the app guides explain; the matcher's constants and server own them.
+# Matcher env vars mentioned in app docs.
 _MATCHER_ENVIRONMENT_NAMES = {"SHARK_INFERENCE_HOST", "SHARK_INFERENCE_PORT", "SHARK_MODELS"}
 # Endpoints served by the matcher, so their documented URLs use the inference port.
 _MATCHER_ROUTES = ("/health", "/ready", "/stats", "/embeddings")
@@ -39,7 +39,7 @@ _MATCHER_ROUTES = ("/health", "/ready", "/stats", "/embeddings")
 
 @pytest.fixture(scope="module", name="app_artifacts")
 def _app_artifacts_fixture(tmp_path_factory):
-    """Build app release artifacts from a repository-local temporary checkout."""
+    """Build wheel and source archive from a temporary copy of the repo."""
     workspace = tmp_path_factory.mktemp("app-artifacts")
     source = workspace / "source"
     wheelhouse = workspace / "wheelhouse"
@@ -102,13 +102,13 @@ def _app_artifacts_fixture(tmp_path_factory):
 
 @pytest.fixture(scope="module", name="app_wheel")
 def _app_wheel_fixture(app_artifacts):
-    """Return the wheel from the shared app artifact build."""
+    """Return the built wheel path."""
     return app_artifacts.wheel
 
 
 @pytest.fixture(scope="module", name="app_sdist")
 def _app_sdist_fixture(app_artifacts):
-    """Return the source archive from the shared app artifact build."""
+    """Return the built source archive path."""
     return app_artifacts.sdist
 
 
@@ -118,19 +118,19 @@ def _app_sdist_fixture(app_artifacts):
     name="app_release_artifact",
 )
 def _app_release_artifact_fixture(request, app_artifacts):
-    """Return each app release artifact for common installation checks."""
+    """Yield both the wheel and source archive for parametrized tests."""
     return getattr(app_artifacts, request.param)
 
 
 
 def test_app_wheel_has_repository_specific_distribution_name(app_wheel):
-    """The app wheel is distinguishable from the matcher distribution."""
+    """Check that the wheel package name is shark-matcher-app."""
     metadata = _wheel_metadata(app_wheel)
     assert "Name: shark-matcher-app" in metadata.splitlines()
 
 
 def test_app_wheel_declares_only_app_runtime_dependencies(app_wheel):
-    """App install metadata includes its runtime stack and excludes ML packages."""
+    """Check that the wheel includes app dependencies and excludes ML packages."""
     requirement_names = _requirement_names(_wheel_metadata(app_wheel))
     required = {
         "argon2-cffi",
@@ -151,7 +151,7 @@ def test_app_wheel_declares_only_app_runtime_dependencies(app_wheel):
 
 
 def test_app_wheel_dependencies_match_requirement_authorities(app_wheel):
-    """Wheel runtime and development metadata derive from their requirement files."""
+    """Check that wheel dependencies match requirements.txt and requirements-dev.txt."""
     metadata = _wheel_metadata(app_wheel)
     assert _requirement_names(metadata) == _requirement_file_names(
         APP_ROOT / "requirements" / "requirements.txt"
@@ -162,7 +162,7 @@ def test_app_wheel_dependencies_match_requirement_authorities(app_wheel):
 
 
 def test_app_wheel_contains_runtime_modules_and_browser_assets(app_wheel):
-    """The installed artifact contains the modules and assets needed to run."""
+    """Check that the wheel includes required Python modules, SQL files, and static assets."""
     with zipfile.ZipFile(app_wheel) as archive:
         contents = set(archive.namelist())
     _assert_no_generated_python_artifacts(contents)
@@ -191,7 +191,7 @@ def test_app_source_archive_contains_setup_inputs_and_runtime_files(
     app_sdist,
     app_wheel,
 ):
-    """The app sdist contains every setup input and packaged runtime file."""
+    """Check that the source archive includes setup files and all wheel files."""
     contents = _source_archive_contents(app_sdist)
     _assert_no_generated_python_artifacts(contents)
     archive_roots = {Path(name).parts[0] for name in contents}
@@ -212,7 +212,7 @@ def test_app_source_archive_contains_setup_inputs_and_runtime_files(
 
 
 def test_app_release_version_is_synchronized(app_wheel):
-    """Runtime and distribution metadata use the approved V1 version."""
+    """Check that frontend.__version__ and wheel metadata both report 1.0.0."""
     metadata = _wheel_metadata(app_wheel).splitlines()
 
     assert frontend.__version__ == "1.0.0"
@@ -220,7 +220,7 @@ def test_app_release_version_is_synchronized(app_wheel):
 
 
 def test_app_wheel_excludes_test_packages(app_wheel):
-    """The app release wheel contains no repository test packages."""
+    """Check that the wheel excludes the tests directory."""
     with zipfile.ZipFile(app_wheel) as archive:
         packaged_tests = [
             name for name in archive.namelist() if name.startswith("tests/")
@@ -232,7 +232,7 @@ def test_app_release_artifacts_import_without_source_checkout(
     app_release_artifact,
     tmp_path,
 ):
-    """Each app release artifact installs and imports outside the checkout."""
+    """Check that the wheel and sdist install and import outside the repo."""
     install_root = tmp_path / "installed"
     install_result = subprocess.run(
         [
@@ -272,7 +272,7 @@ from core import app_utils
 
 
 def test_recreate_database_creates_configured_parent(tmp_path, monkeypatch):
-    """Fresh database initialization creates its configured parent directory."""
+    """Check that recreate_database creates missing parent directories."""
     database_path = tmp_path / "new-data-root" / "db" / "app.db"
     monkeypatch.setattr(database, "run_sqlite_cmd", lambda *_args: None)
 
@@ -282,7 +282,7 @@ def test_recreate_database_creates_configured_parent(tmp_path, monkeypatch):
 
 
 def test_app_runner_reports_skips_and_owns_the_deterministic_suite():
-    """The app runner covers root tests with browser and manual checks selected separately."""
+    """Check that the default test runner runs pytest while skipping manual and browser tests."""
     args = SimpleNamespace(
         py_style=False,
         js_style=False,
@@ -303,7 +303,7 @@ def test_app_runner_reports_skips_and_owns_the_deterministic_suite():
 
 
 def test_app_runner_keeps_explicit_manual_selection_available():
-    """Explicit app test selections are not filtered by default ignores."""
+    """Check that explicitly requested test paths are not ignored by the runner."""
     args = SimpleNamespace(
         py_style=False,
         js_style=False,
@@ -323,7 +323,7 @@ def test_app_runner_keeps_explicit_manual_selection_available():
 
 
 def test_app_runner_owns_browser_matrix():
-    """Browser coverage is an explicit three-engine CI job, not a silent skip."""
+    """Check that --browser runs Playwright tests on chromium, firefox, and webkit."""
     commands = run_tests.collect_commands(SimpleNamespace(
         py_style=False, js_style=False, run=None, browser=True))
     assert len(commands) == 1
@@ -335,7 +335,7 @@ def test_app_runner_owns_browser_matrix():
 
 
 def test_app_runner_does_not_filter_explicit_tests_target():
-    """An explicit request for all app tests is distinct from the default suite."""
+    """Check that passing --run tests does not add default --ignore flags."""
     args = SimpleNamespace(
         py_style=False,
         js_style=False,
@@ -349,7 +349,7 @@ def test_app_runner_does_not_filter_explicit_tests_target():
 
 
 def test_app_workflow_uses_supported_matrix_and_owned_commands():
-    """CI delegates to repository authorities across the supported V1 matrix."""
+    """Check that the GitHub Actions workflow runs the test runner across supported OSes."""
     workflow_source = (
         APP_ROOT / ".github/workflows/python-tests.yml"
     ).read_text(encoding="utf-8")
@@ -374,7 +374,7 @@ def test_app_workflow_uses_supported_matrix_and_owned_commands():
 
 
 def test_javascript_manifest_owns_eslint_dependencies():
-    """The private JavaScript manifest declares every configured ESLint package."""
+    """Check that package.json declares all ESLint packages used in eslint.config.js."""
     manifest = json.loads((APP_ROOT / "frontend" / "package.json").read_text(encoding="utf-8"))
     config_source = (APP_ROOT / "frontend" / "eslint.config.js").read_text(encoding="utf-8")
     configured_packages = set(
@@ -387,7 +387,7 @@ def test_javascript_manifest_owns_eslint_dependencies():
 
 
 def test_javascript_lock_matches_manifest():
-    """The npm lock root exactly matches the JavaScript development manifest."""
+    """Check that package-lock.json matches devDependencies and engines in package.json."""
     manifest = json.loads((APP_ROOT / "frontend" / "package.json").read_text(encoding="utf-8"))
     lock = json.loads((APP_ROOT / "frontend" / "package-lock.json").read_text(encoding="utf-8"))
 
@@ -401,7 +401,7 @@ def test_javascript_lock_matches_manifest():
 
 
 def test_javascript_manifests_are_publishable_files():
-    """The repository ignore rules retain both JavaScript authority files."""
+    """Check that .gitignore does not ignore package.json or package-lock.json."""
     ignored_patterns = {
         line.strip()
         for line in (APP_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
@@ -412,7 +412,7 @@ def test_javascript_manifests_are_publishable_files():
 
 
 def test_javascript_lint_configuration_owns_first_party_boundaries():
-    """One config owns the first-party scope, style, and API naming boundary."""
+    """Check that eslint.config.js sets the expected style rules and file scope."""
     config_source = (APP_ROOT / "frontend" / "eslint.config.js").read_text(encoding="utf-8")
 
     assert "@eslint/js" not in config_source
@@ -432,7 +432,7 @@ def test_javascript_lint_configuration_owns_first_party_boundaries():
 def test_javascript_style_runner_uses_complete_scope_and_propagates_failure(
     monkeypatch,
 ):
-    """One ESLint invocation owns all first-party files and propagates failure."""
+    """Check that the JS style runner lints all app JS paths and returns 1 on failure."""
     checked_commands = []
 
     def fake_run_command(command):
@@ -456,7 +456,7 @@ def test_javascript_style_runner_uses_complete_scope_and_propagates_failure(
 
 
 def test_webui_utility_cleanup_has_no_dead_parallel_interfaces():
-    """Utility exports and callers retain only their live responsibilities."""
+    """Check that util.js removes unused helpers and callers pass one arg to listToLinks."""
     webui_root = APP_ROOT / "frontend/static/js/modules/webui"
     util_source = (webui_root / "util.js").read_text(encoding="utf-8")
     individual_source = (webui_root / "individual.js").read_text(encoding="utf-8")
@@ -475,7 +475,7 @@ def test_webui_utility_cleanup_has_no_dead_parallel_interfaces():
 
 
 def test_disabled_review_route_uses_one_guarded_handler():
-    """The dormant review UI has one route handler and safe trigger boundary."""
+    """Check that the disabled review route uses one guarded handler."""
     review_source = (
         APP_ROOT / "frontend/static/js/modules/webui/review.js"
     ).read_text(encoding="utf-8")
@@ -488,7 +488,7 @@ def test_disabled_review_route_uses_one_guarded_handler():
 
 
 def test_merge_upload_cleanup_has_one_way_reuse_and_one_scale_path():
-    """Merge and upload retain one directional reuse and one scale path."""
+    """Check that merge.js imports upload.js one-way and upload.js has one scaling path."""
     webui_root = APP_ROOT / "frontend/static/js/modules/webui"
     merge_source = (webui_root / "merge.js").read_text(encoding="utf-8")
     upload_source = (webui_root / "upload.js").read_text(encoding="utf-8")
@@ -509,7 +509,7 @@ def test_merge_upload_cleanup_has_one_way_reuse_and_one_scale_path():
 
 
 def test_individual_route_renderer_remains_private_and_live():
-    """The route renderer remains locally used without a dead public export."""
+    """Check that renderIndividual is kept private in individual.js."""
     individual_source = (
         APP_ROOT / "frontend/static/js/modules/webui/individual.js"
     ).read_text(encoding="utf-8")
@@ -528,7 +528,7 @@ def test_individual_route_renderer_remains_private_and_live():
 
 
 def test_home_media_mutations_share_navigation_and_private_interfaces():
-    """Home media mutations reuse routing and expose only live interfaces."""
+    """Check that home.js reuses navigateToFetchedIndividual and keeps helpers private."""
     home_source = (
         APP_ROOT / "frontend/static/js/modules/webui/home.js"
     ).read_text(encoding="utf-8")
@@ -569,7 +569,7 @@ def test_home_media_mutations_share_navigation_and_private_interfaces():
 
 
 def test_browser_client_uses_one_transport_and_live_core_facade():
-    """Endpoint modules delegate to one transport and the facade stays live."""
+    """Check that JS client modules use Core.sendRequest and base.js re-exports stay used."""
     client_root = APP_ROOT / "frontend/static/js/modules/shark_matcher"
     client_sources = {
         path.name: path.read_text(encoding="utf-8")
@@ -648,7 +648,7 @@ def test_browser_client_uses_one_transport_and_live_core_facade():
 
 
 def test_action_proposal_review_clients_expose_reviewed_operations():
-    """Related endpoint clients retain only live or intentionally dormant APIs."""
+    """Check that action, proposal, and review JS clients export only expected functions."""
     client_root = APP_ROOT / "frontend/static/js/modules/shark_matcher"
     client_sources = {
         "action": (client_root / "action.js").read_text(encoding="utf-8"),
@@ -684,7 +684,7 @@ def test_action_proposal_review_clients_expose_reviewed_operations():
 
 
 def test_match_media_user_clients_expose_reviewed_operations():
-    """Related endpoint clients retain only browser-used operations."""
+    """Check that match, media, and user JS clients export only browser-used functions."""
     client_root = APP_ROOT / "frontend/static/js/modules/shark_matcher"
     client_sources = {
         "match": (client_root / "match.js").read_text(encoding="utf-8"),
@@ -742,7 +742,7 @@ def test_match_media_user_clients_expose_reviewed_operations():
 
 
 def test_individual_client_exposes_reviewed_operations():
-    """The individual endpoint client retains only browser-used operations."""
+    """Check that individual.js exports only browser-used functions."""
     client_source = (
         APP_ROOT / "frontend/static/js/modules/shark_matcher/individual.js"
     ).read_text(encoding="utf-8")
@@ -772,7 +772,7 @@ def test_individual_client_exposes_reviewed_operations():
 
 
 def test_browser_hash_callers_are_ready_for_native_async_digest():
-    """Each current hash caller can consume the asynchronous native digest."""
+    """Check that login, settings, and upload await Util.sha256."""
     webui_root = APP_ROOT / "frontend/static/js/modules/webui"
     login_source = (webui_root / "login.js").read_text(encoding="utf-8")
     settings_source = (webui_root / "settings.js").read_text(encoding="utf-8")
@@ -794,7 +794,7 @@ def test_browser_hash_callers_are_ready_for_native_async_digest():
 
 
 def test_browser_hashing_uses_only_native_web_crypto():
-    """The shared browser hash uses Web Crypto without an SJCL fallback."""
+    """Check that util.js uses Web Crypto and no longer bundles SJCL."""
     util_source = (
         APP_ROOT / "frontend/static/js/modules/webui/util.js"
     ).read_text(encoding="utf-8")
@@ -813,7 +813,7 @@ def test_browser_hashing_uses_only_native_web_crypto():
 
 
 def test_browser_hashing_supports_insecure_http_fallback():
-    """Browser hashing falls back to a portable pure JS SHA-256 implementation on HTTP."""
+    """Check that Util.sha256 falls back to pure-JS SHA-256 when not in a secure context."""
     util_source = (
         APP_ROOT / "frontend/static/js/modules/webui/util.js"
     ).read_text(encoding="utf-8")
@@ -861,7 +861,7 @@ def test_browser_hashing_supports_insecure_http_fallback():
 
 
 def test_app_wheel_declares_only_packaged_modules(app_wheel):
-    """Every top-level name declared by the app wheel is packaged."""
+    """Check that every module in top_level.txt is in the wheel and avoids matcher names."""
     with zipfile.ZipFile(app_wheel) as archive:
         contents = set(archive.namelist())
         top_level_files = [
@@ -884,7 +884,7 @@ def test_app_wheel_declares_only_packaged_modules(app_wheel):
 
 
 def test_static_references_resolve_to_files():
-    """Every /static/ path the browser assets request exists in the checkout."""
+    """Check that all /static/ references in HTML, CSS, and JS resolve to existing files."""
     static_root = APP_ROOT / "frontend" / "static"
     reference = re.compile(r"""(?:src|href)=["'](/static/[^"'?#]+)|url\(["']?(/static/[^)"'?#]+)""")
     missing = []
@@ -900,7 +900,7 @@ def test_static_references_resolve_to_files():
 
 
 def test_app_ignore_rules_cover_publication_artifacts():
-    """App ignore rules exclude generated and sensitive publication paths."""
+    """Check that .gitignore ignores build outputs and sensitive files while keeping required files."""
     ignored_paths = {
         ".coverage",
         ".coverage.unit",
@@ -944,7 +944,7 @@ def test_app_ignore_rules_cover_publication_artifacts():
 
 
 def test_app_tracked_files_exclude_publication_artifacts():
-    """App tracked files contain only reviewed publication exceptions."""
+    """Check that git does not track build artifacts, databases, or unexpected data/secret files."""
     tracked_paths = _git_tracked_paths(APP_ROOT)
 
     allowed_paths = {
@@ -1013,7 +1013,7 @@ def test_app_tracked_files_exclude_publication_artifacts():
 
 
 def test_app_tracked_files_are_path_portable():
-    """Tracked app content contains no developer-specific rooted paths."""
+    """Check that tracked files contain no local absolute paths."""
     payloads = {
         tracked_path: (APP_ROOT / tracked_path).read_bytes()
         for tracked_path in _git_tracked_paths(APP_ROOT)
@@ -1026,32 +1026,32 @@ def test_app_tracked_files_are_path_portable():
 
 
 def test_app_documentation_links_resolve_inside_the_repository():
-    """Current documentation links resolve to existing repository files and headings."""
+    """Check that markdown links resolve to existing files and headings."""
     documents = _markdown_documents(APP_ROOT, include_internal=False)
 
     assert not _documentation_link_violations(APP_ROOT, documents)
 
 
 def test_app_documentation_names_repository_files_by_path():
-    """Current documentation names Shark Matcher files by path, because branch links drift from the paired checkout."""
+    """Check that docs do not use GitHub blob links to repo files."""
     documents = _markdown_documents(APP_ROOT, include_internal=False)
 
     assert [path for path, text in documents.items() if _REPOSITORY_BLOB_LINK.search(text)] == []
 
 
 def test_app_documentation_follows_markdown_conventions():
-    """Current documentation uses Title Case headings, tagged fences, UPPER_CASE placeholders, no rules, and short paragraphs."""
+    """Check that docs follow markdown formatting rules."""
     assert not _markdown_convention_violations(
         _markdown_documents(APP_ROOT, include_internal=False))
 
 
 def test_app_documentation_contains_no_fixed_service_key():
-    """Documented service-key exports generate the key or name a placeholder."""
+    """Check that docs do not hard-code literal SHARK_INFERENCE_API_KEY values."""
     assert not _fixed_service_key_documents(_markdown_documents(APP_ROOT))
 
 
 def test_app_documented_environment_names_are_known():
-    """Every SHARK_* name in current documentation is app source or a matcher setting."""
+    """Check that every documented SHARK_* env var exists in app source or matcher settings."""
     documented = set()
     for text in _markdown_documents(APP_ROOT, include_internal=False).values():
         documented.update(_ENVIRONMENT_NAME.findall(text))
@@ -1087,7 +1087,7 @@ def test_app_release_artifacts_are_path_portable(
     app_release_artifact,
     app_artifacts,
 ):
-    """Built app artifacts contain no checkout or build-machine paths."""
+    """Check that built wheel and sdist contain no local paths."""
     payloads = _release_artifact_payloads(app_release_artifact)
 
     assert not _path_portability_violations(
@@ -1097,7 +1097,7 @@ def test_app_release_artifacts_are_path_portable(
 
 
 def test_committed_ci_fixture_is_marked_and_immutable():
-    """The documented CI fixture retains its exact committed data content."""
+    """Check that tests/ci-test-data README and CSV/TSV files match the expected hash."""
     fixture_root = APP_ROOT / "tests" / "ci-test-data"
     policy = (fixture_root / "README.md").read_text(encoding="utf-8").lower()
     assert all(statement in policy for statement in ("immutable", "must never write"))
@@ -1114,7 +1114,7 @@ def test_committed_ci_fixture_is_marked_and_immutable():
 
 
 def _wheel_metadata(wheel_path):
-    """Return the decoded core metadata from a built wheel."""
+    """Read METADATA from a wheel archive."""
     with zipfile.ZipFile(wheel_path) as archive:
         metadata_files = [
             name for name in archive.namelist() if name.endswith(".dist-info/METADATA")
@@ -1124,7 +1124,7 @@ def _wheel_metadata(wheel_path):
 
 
 def _release_artifact_payloads(artifact_path):
-    """Return file payloads from a wheel or gzipped source archive."""
+    """Read all file bytes from a wheel or tar.gz archive."""
     if artifact_path.suffix == ".whl":
         with zipfile.ZipFile(artifact_path) as archive:
             return {name: archive.read(name) for name in archive.namelist()}
@@ -1138,12 +1138,12 @@ def _release_artifact_payloads(artifact_path):
 
 
 def _source_archive_contents(source_archive):
-    """Return the normalized member names from a gzipped source archive."""
+    """Return file paths inside a tar.gz archive."""
     return set(_release_artifact_payloads(source_archive))
 
 
 def _git_tracked_paths(repository_root, include_untracked=False):
-    """Return tracked paths, plus unignored new files when requested, that remain in the prospective working tree."""
+    """Return git-tracked file paths (and optionally untracked, unignored files)."""
     command = ["git", "ls-files"]
     if include_untracked:
         command += ["--cached", "--others", "--exclude-standard"]
@@ -1162,7 +1162,7 @@ def _git_tracked_paths(repository_root, include_untracked=False):
 
 
 def _markdown_documents(repository_root, include_internal=True):
-    """Return the text of each Markdown document in the prospective working tree, keyed by path."""
+    """Read all repo markdown files, optionally excluding status-banner docs."""
     documents = {}
     for path in _git_tracked_paths(repository_root, include_untracked=True):
         if path.endswith(".md"):
@@ -1191,7 +1191,7 @@ def _heading_anchors(text):
 
 
 def _documentation_link_violations(repository_root, documents, forbidden_directories=()):
-    """Return relative links that are missing, leave the repository, name another document, miss their anchor, or enter a forbidden directory."""
+    """Find broken, cross-document, or out-of-repo relative markdown links."""
     violations = []
     for path, text in documents.items():
         source = repository_root / path
@@ -1215,7 +1215,7 @@ def _documentation_link_violations(repository_root, documents, forbidden_directo
 
 
 def _fixed_service_key_documents(documents):
-    """Return documents that assign the service key a literal instead of a substitution or uppercase placeholder."""
+    """Find docs that assign a literal value to SHARK_INFERENCE_API_KEY."""
     return sorted(
         path for path, text in documents.items()
         for value in _SERVICE_KEY_ASSIGNMENT.findall(text)
@@ -1225,7 +1225,7 @@ def _fixed_service_key_documents(documents):
 
 
 def _source_environment_names(repository_root):
-    """Return SHARK_* names that non-test Python and shell sources mention."""
+    """Find SHARK_* env var names in non-test Python and shell files."""
     names = set()
     for path in _git_tracked_paths(repository_root, include_untracked=True):
         if path.endswith((".py", ".sh")) and not path.startswith("tests/"):
@@ -1234,7 +1234,7 @@ def _source_environment_names(repository_root):
     return names
 
 def _markdown_convention_violations(documents):
-    """Return headings, rules, fences, placeholders, and long paragraphs that break the Markdown conventions."""
+    """Check docs for heading case, code fences, horizontal rules, placeholders, and paragraph length."""
     violations = []
     for path, text in documents.items():
         in_fence = False
@@ -1264,7 +1264,7 @@ def _markdown_convention_violations(documents):
 
 
 def _paragraph_violations(path, text):
-    """Return paragraphs over three sentences and runs of three paragraphs with no heading, list, table, or code between them."""
+    """Find paragraphs over 3 sentences or 3+ consecutive paragraphs without a break."""
     violations, paragraph, run, in_fence = [], [], 0, False
 
     def close():
@@ -1307,7 +1307,7 @@ def _paragraph_violations(path, text):
 
 
 def _path_portability_violations(payloads, exact_roots=()):
-    """Return files containing developer-specific or placeholder rooted paths."""
+    """Find files containing hardcoded local or placeholder absolute paths."""
     patterns = {
         "macOS user home": re.compile(rb"/" + rb"Users/[A-Za-z0-9._-]+/"),
         "Linux user home": re.compile(rb"/" + rb"home/[A-Za-z0-9._-]+/"),
@@ -1337,19 +1337,19 @@ def _path_portability_violations(payloads, exact_roots=()):
 
 
 def _assert_no_generated_python_artifacts(contents):
-    """Require an artifact file set to exclude generated Python caches."""
+    """Assert that archive contents have no __pycache__ or .pyc/.pyo files."""
     generated = {name for name in contents if "__pycache__" in Path(name).parts
                  or name.endswith((".pyc", ".pyo"))}
     assert generated == set()
 
 
 def _requirement_name(requirement):
-    """Return a normalized distribution name from a requirement specifier."""
+    """Extract the lowercase package name from a requirement line."""
     return re.split(r"[ <>=;\[(]", requirement, maxsplit=1)[0].lower()
 
 
 def _requirement_names(metadata):
-    """Return normalized mandatory dependency names from wheel metadata."""
+    """Extract required package names from wheel metadata."""
     names = set()
     for line in metadata.splitlines():
         if not line.lower().startswith("requires-dist:") or "; extra ==" in line:
@@ -1360,7 +1360,7 @@ def _requirement_names(metadata):
 
 
 def _extra_requirement_names(metadata, extra):
-    """Return normalized dependency names assigned to one wheel extra."""
+    """Extract package names for a given extra from wheel metadata."""
     marker = f'extra == "{extra}"'
     names = set()
     for line in metadata.splitlines():
@@ -1372,7 +1372,7 @@ def _extra_requirement_names(metadata, extra):
 
 
 def _requirement_file_names(path):
-    """Return normalized dependency names declared directly in a requirements file."""
+    """Extract package names from a requirements file."""
     names = set()
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         requirement = raw_line.strip()
@@ -1383,7 +1383,7 @@ def _requirement_file_names(path):
 
 
 def _javascript_exports(source):
-    """Return the names from a JavaScript module's terminal export block."""
+    """Extract exported names from a JS file's final export block."""
     export_match = re.search(r"export\s*\{(?P<body>.*?)\};\s*$", source, re.S)
     assert export_match is not None
     return set(re.findall(r"^\s*(\w+),?\s*$", export_match.group("body"), re.M))
@@ -1394,7 +1394,7 @@ _PICTOGRAPHIC_SYMBOL = re.compile(
 
 
 def test_app_tracked_text_contains_no_pictographic_symbols():
-    """Documentation, comments, and user-facing text use words or plain ASCII, never emojis, arrows, or icons."""
+    """Check that tracked text files contain no emojis or pictographic symbols."""
     violations = []
     for tracked_path in _git_tracked_paths(APP_ROOT):
         if tracked_path.endswith((".md", ".py", ".sh", ".txt", ".yml", ".yaml", ".toml", ".cfg", ".js", ".html", ".css")):
@@ -1408,7 +1408,7 @@ def test_app_tracked_text_contains_no_pictographic_symbols():
 
 
 def test_requirement_files_pin_every_dependency():
-    """Every dependency line names an exact version so a fresh install matches the tested one."""
+    """Check that all requirements files pin exact package versions with ==."""
     unpinned = [
         f"{path.name}: {line.strip()}"
         for path in sorted((APP_ROOT / "requirements").glob("requirements*.txt"))
@@ -1420,7 +1420,7 @@ def test_requirement_files_pin_every_dependency():
 
 
 def test_generated_element_ids_contain_no_spaces():
-    """An id with a space is invalid HTML and cannot be selected with #id."""
+    """Check that HTML id and for attributes contain no spaces."""
     pattern = re.compile(r'\b(?:id|for)="([^"]*)"')
     offenders = [
         f"{path.name}: {value}"

@@ -1,4 +1,4 @@
-"""Demo lifecycle and ground truth; ordinary mutations retain their shared owners."""
+"""Manage the disposable demo database, rounds, and grading."""
 
 from contextlib import contextmanager, closing
 from contextvars import ContextVar
@@ -85,16 +85,16 @@ class DemoSession:
         return {"round_id": self.round_id, "maximum": maximum, "selected": selected}
 
     def randomize(self, count):
-        """Restore and detach a deterministic sample in one rollback-safe transaction."""
+        """Reset to baseline and detach a fixed-seed sample of observations in one transaction."""
         return self._replace_round(count)
 
     def clear(self):
-        """Restore the startup dataset without detaching any observations."""
+        """Reset to the startup dataset without detaching any observations."""
         return self._replace_round(0, allow_empty=True)
 
     def _replace_round(self, count, allow_empty=False):
-        """Share atomic baseline restoration between randomization and clearing."""
-        # Imported here to keep the existing unmatch implementation authoritative.
+        """Reset the working database from baseline and optionally detach observations."""
+        # Reuse the main unmatch helper so demo detaches match live behavior.
         from frontend.individual import detach_individual
 
         with self.scope(), closing(app_utils.db_connect()) as connection:
@@ -140,7 +140,7 @@ class DemoSession:
             return self.status()
 
     def keys(self, source_id, reveal=False):
-        """Find randomized observations on a profile; reveal immutable keys on demand."""
+        """Return the count of randomized observations on a profile, or reveal their original IDs."""
         with closing(app_utils.db_connect()) as connection:
             rows = connection.execute("""
                 SELECT truth.individual, truth.image_name, truth.original_source, truth.original_name

@@ -1,4 +1,4 @@
-"""Optional routes and request boundary for the disposable demo database."""
+"""Optional API routes and request routing for demo mode."""
 
 import functools
 import http

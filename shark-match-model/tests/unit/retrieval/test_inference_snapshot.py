@@ -103,7 +103,7 @@ def test_snapshot_loading_does_not_open_sqlite(tmp_path, monkeypatch):
     ["parent traversal", "absolute path", "non-uuid"],
 )
 def test_snapshot_identifier_cannot_be_a_path(tmp_path, snapshot_id_kind):
-    """Only canonical UUID identifiers may participate in path resolution."""
+    """Reject path traversal, absolute paths, and non-UUID snapshot IDs."""
     invalid_ids = {
         "parent traversal": "../outside",
         "absolute path": str(tmp_path / "outside"),
@@ -135,7 +135,7 @@ def test_manifest_identifier_must_match_requested_snapshot(tmp_path):
 
 
 def test_snapshot_rejects_tampered_file_hash(tmp_path):
-    """Changing CSV bytes after publication invalidates the snapshot."""
+    """Reject a snapshot when a CSV file does not match its manifest SHA-256."""
     snapshot_dir = _create_snapshot(tmp_path)
     with (snapshot_dir / "media.csv").open("a", encoding="utf-8") as media_file:
         media_file.write("tampered")
@@ -159,7 +159,7 @@ def test_snapshot_rejects_row_count_mismatch(tmp_path):
 
 
 def test_snapshot_rejects_malformed_csv_columns(tmp_path):
-    """Version-1 CSV rows require their exact documented column counts."""
+    """Reject CSV files whose rows have the wrong column count."""
     snapshot_dir = _create_snapshot(tmp_path)
     media_path = snapshot_dir / "media.csv"
     _write_csv(media_path, [[10, "too", "few"]])
@@ -201,7 +201,7 @@ def test_snapshot_rejects_symlinked_manifest(tmp_path):
 
 
 def test_snapshot_rejects_symlinked_snapshot_directory(tmp_path):
-    """A snapshot UUID directory cannot redirect outside the configured root."""
+    """Reject a snapshot directory that is a symlink outside snapshot_root."""
     outside_root = tmp_path / "outside"
     outside_snapshot = _create_snapshot(outside_root)
     link_root = tmp_path / "snapshots"

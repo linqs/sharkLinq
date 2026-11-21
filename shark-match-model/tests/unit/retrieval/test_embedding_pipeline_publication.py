@@ -1,4 +1,4 @@
-"""Tests for CLI integration with versioned embedding publication."""
+"""Tests for the embeddings CLI and versioned generation pipeline."""
 
 import os
 import sys
@@ -12,7 +12,7 @@ from src.retrieval import generation_store  # pylint: disable=wrong-import-posit
 
 
 class TestEmbeddingPipelinePublication(unittest.TestCase):
-    """Verify orchestration reuse at the CLI publication boundary."""
+    """Tests for CLI flags, run_pipeline, and maintenance modes."""
 
     def test_retrieval_mode_precedence(self):
         """Pipeline flags select the one artifact layout readers will load."""
@@ -92,12 +92,12 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     @patch("src.core.utils.resolve_csv_dir", return_value="/annotations/csv")
     def test_run_pipeline_publishes_full_generation(
             self, mock_resolve_csv, mock_publish, mock_build_artifacts):
-        """A full CLI run delegates staging and publication to generation_store."""
+        """A full run passes staging and save work to generation_store.publish_generation."""
         published = object()
         captured = {}
 
         def publish(**kwargs):
-            """Capture the publisher contract and execute its build callback."""
+            """Record publish_generation arguments and run its build callback."""
             captured.update(kwargs)
             self.assertEqual(kwargs["build"]("/staging/new", "/previous"), 7)
             return published
@@ -141,11 +141,11 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     @patch("src.core.utils.resolve_csv_dir", return_value="/annotations/csv")
     def test_run_pipeline_seeds_incremental_generation(
             self, mock_resolve_csv, mock_publish, mock_build_artifacts):
-        """An incremental CLI run asks the publisher to copy its predecessor."""
+        """An incremental run sets seed_previous=True."""
         captured = {}
 
         def publish(**kwargs):
-            """Capture the publisher contract and execute its build callback."""
+            """Record publish_generation arguments and run its build callback."""
             captured.update(kwargs)
             kwargs["build"]("/staging/update", "/previous")
             return "published"
@@ -181,11 +181,11 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     @patch("src.core.utils.resolve_csv_dir")
     def test_run_pipeline_threads_validated_snapshot_csv_to_existing_builder(
             self, mock_resolve_csv, mock_publish, mock_build_artifacts):
-        """A validated snapshot supplies input without another path resolver."""
+        """A validated snapshot provides the CSV directory directly without calling resolve_csv_dir."""
         captured = {}
 
         def publish(**kwargs):
-            """Exercise the existing build callback against publisher staging."""
+            """Record publish_generation arguments and run its build callback."""
             captured.update(kwargs)
             kwargs["build"]("/staging/snapshot", "/previous")
             return "published"
@@ -251,7 +251,7 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     def test_dataset_maintenance_reuses_pipeline_publication(
             self, _mock_isdir, mock_resolve_csv, mock_publish,
             mock_regenerate_dataset):
-        """Dataset-only maintenance updates a copied generation in staging."""
+        """Dataset-only maintenance seeds staging from the previous generation and refreshes the dataset."""
         captured = {}
 
         def publish(**kwargs):
@@ -297,7 +297,7 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     def test_suggestions_maintenance_reuses_pipeline_publication(
             self, _mock_isdir, mock_resolve_csv, mock_publish, mock_count,
             mock_suggestions):
-        """Suggestions-only maintenance writes through copied staging."""
+        """Suggestions-only maintenance seeds staging and writes suggestions.pt."""
         captured = {}
 
         def publish(**kwargs):
@@ -359,7 +359,7 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     @patch("src.core.utils.print_script_banner")
     def test_cli_maintenance_modes_use_shared_pipeline(
             self, _mock_banner, _mock_resolve_models, mock_run_pipeline):
-        """Both standalone CLI modes enter the authoritative coordinator."""
+        """Both --dataset-only and --suggestions-only call run_pipeline with the matching maintenance_mode."""
         cases = (
             ("--dataset-only", "dataset"),
             ("--suggestions-only", "suggestions"),
@@ -391,7 +391,7 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     @patch("src.retrieval.retrieval.Retriever")
     def test_suggestions_use_explicit_staged_generation(
             self, mock_retriever_class, mock_store_suggestions):
-        """Suggestion generation loads the explicit staged artifact layout."""
+        """generate_and_store_suggestions loads Retriever from the given staging directory."""
         retriever = mock_retriever_class.return_value
 
         embeddings.generate_and_store_suggestions(
@@ -417,7 +417,7 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     @patch("src.retrieval.retrieval.Retriever",
            side_effect=ValueError("invalid staged artifacts"))
     def test_required_suggestion_failure_is_catchable(self, _mock_retriever):
-        """Standalone suggestion failure aborts before pointer publication."""
+        """With raise_on_error=True, a suggestion failure raises RuntimeError."""
         with self.assertRaisesRegex(RuntimeError, "generation failed"):
             embeddings.generate_and_store_suggestions(
                 "embedding-set",
@@ -428,7 +428,7 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     @patch("src.retrieval.retrieval.Retriever",
            side_effect=ValueError("invalid staged artifacts"))
     def test_optional_suggestion_failure_remains_nonfatal(self, _mock_retriever):
-        """Full generation retains the established optional-cache behavior."""
+        """By default, a suggestion generation error is non-fatal."""
         embeddings.generate_and_store_suggestions(
             "embedding-set",
             model_dir="/generation-root/staged-set",
@@ -440,7 +440,7 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     @patch("src.core.utils.get_model_metadata")
     def test_dataset_maintenance_writes_and_validates_staging(
             self, mock_metadata, mock_create_dataset, _mock_exists, mock_load):
-        """The existing dataset operation validates staged embedding alignment."""
+        """regenerate_dataset_only writes the dataset to staging and checks row alignment."""
         previous_dataset = MagicMock()
         previous_dataset.get_filenames.return_value = ["one.jpg", "two.jpg"]
         staged_dataset = MagicMock()
@@ -529,7 +529,7 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     def test_existing_build_body_targets_publisher_staging(
             self, mock_store_images, mock_store_centroids, mock_store_neighbors,
             mock_exists, mock_load, mock_suggestions):
-        """The extracted existing build body writes and reviews only staging."""
+        """_build_generation_artifacts writes images, centroids, and suggestions into staging."""
         staged_dataset = MagicMock()
         staged_dataset.get_filenames.return_value = ["one.jpg", "two.jpg"]
         mock_load.return_value = staged_dataset
@@ -619,7 +619,7 @@ class TestEmbeddingPipelinePublication(unittest.TestCase):
     def test_incremental_build_passes_validated_csv_to_existing_updater(
             self, mock_update, _mock_store_centroids, _mock_store_neighbors,
             _mock_suggestions, _mock_count):
-        """The shared build body forwards its resolved immutable CSV input."""
+        """Incremental builds pass the resolved CSV directory to update_embeddings."""
         args = SimpleNamespace(
             update_embeddings=True,
             use_psl=False,

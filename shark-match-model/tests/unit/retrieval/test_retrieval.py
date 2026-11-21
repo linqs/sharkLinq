@@ -183,9 +183,7 @@ def _model_spec(display_name=MODEL, **overrides):
 
 def _load_disk_retriever(embeddings_root):
     """Load the baseline test model from an explicit embeddings root."""
-    # These storage-layout tests serialize float64 fixture tensors. Pin their
-    # reader to CPU because MPS cannot materialize float64 tensors; device
-    # selection is outside the behavior under test.
+    # Pin to CPU because MPS does not support float64 fixture tensors.
     with patch(
             "src.retrieval.retrieval.utils.get_torch_device",
             return_value=torch.device("cpu"),
@@ -197,17 +195,17 @@ def _load_disk_retriever(embeddings_root):
 
 
 def _model_statuses(retriever):
-    """Call the Retriever-owned model-status interface."""
+    """Return model statuses from the retriever."""
     return retriever.get_model_statuses()
 
 
 def _mark_model_ready(retriever):
-    """Align an injected model-data cache with authoritative ready state."""
+    """Mark the test model as ready."""
     retriever._set_model_status(MODEL, ModelState.READY)
 
 
 def _mark_model_failed(retriever):
-    """Set the authoritative failed state used by retrieval gating tests."""
+    """Mark the test model as failed with a missing-artifact error."""
     retriever._set_model_status(
         MODEL,
         ModelState.FAILED,
@@ -294,7 +292,7 @@ class TestGenerationResolution:
 
 
 class TestModelLifecycleStatus:
-    """Pin Retriever-owned state transitions without a parallel server cache."""
+    """Tests for Retriever model status transitions."""
 
     def test_configured_model_starts_not_attempted(self):
         """Configuration creates status before the loader begins work."""
@@ -548,11 +546,7 @@ class TestGetLooCentroidNeighbors:
         assert own_individual_distance != pytest.approx(0.26105, abs=1e-5)
 
     def test_single_member_individual_keeps_standard_centroid(self, retriever):
-        """LOO is undefined for an individual with one image (201 is alone in 20).
-
-        Its centroid stays the image itself, so the distance is 0 and it sorts
-        first.
-        """
+        """A single-image individual keeps itself as its centroid, giving distance 0."""
         result = retriever.get_loo_centroid_neighbors(201)
         assert result["ids"][0] == 201
         assert result["distances"][0] == pytest.approx(0.0, abs=1e-9)
@@ -562,12 +556,7 @@ class TestGetLooCentroidNeighbors:
         assert result == {"ids": [], "distances": [], "labels": []}
 
     def test_does_not_require_precomputed_centroid_data(self, retriever_no_centroid):
-        """LOO derives centroids from embeddings, so absent centroid files are fine.
-
-        This is the direct inverse of the old
-        `test_missing_centroid_data_returns_empty`, which was correct only for
-        the dict-lookup implementation.
-        """
+        """LOO computes centroids from embeddings and works without precomputed centroid files."""
         result = retriever_no_centroid.get_loo_centroid_neighbors(101)
         assert result["ids"] == [101, 102, 201]
 
@@ -583,8 +572,7 @@ class TestGetLooCentroidNeighbors:
 
 class TestGetImageNeighborsAverage:
     def test_individuals_ranked_by_average_distance(self, retriever):
-        """Individual 10 images average to 0.2 from query 101; individual 20 to 0.8.
-        So individual 10 should appear before individual 20 in the output."""
+        """Rank individual 10 (avg distance 0.2) before individual 20 (avg distance 0.8)."""
         result = retriever.get_image_neighbors_average(101)
 
         labels = result["labels"]
@@ -594,8 +582,7 @@ class TestGetImageNeighborsAverage:
         assert last_10 < first_20
 
     def test_query_excluded_from_average_not_from_output(self, retriever):
-        """The query image (101) is excluded when computing the average distance
-        for its individual, but still appears in the returned list."""
+        """Exclude the query image from its individual's average distance, but keep it in results."""
         result = retriever.get_image_neighbors_average(101)
         assert 101 in result["ids"]
 

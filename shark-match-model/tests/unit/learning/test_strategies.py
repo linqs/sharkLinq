@@ -37,10 +37,7 @@ class TestStrategies(unittest.TestCase):
 
     def test_metric_learning_collate_multi_view(self):
         """Verify metric_learning_collate handles multi-view (list) items correctly."""
-        # AugmentedDataset yields ([img1, img2], label) when generating multiple
-        # views: one label covers every view, and collate replicates it.
-        # (ContrastiveLearningIndividualDataset is now an alias for
-        # AugmentedDataset, so no dataset emits a per-view list of labels.)
+        # Multi-view items have a list of images with one shared label that collate replicates.
         batch = [
             ([torch.randn(3, 32, 32), torch.randn(3, 32, 32)], torch.tensor(0)),
             ([torch.randn(3, 32, 32), torch.randn(3, 32, 32)], torch.tensor(1)),
@@ -51,10 +48,7 @@ class TestStrategies(unittest.TestCase):
         self.assertTrue(torch.equal(labels, torch.tensor([0, 0, 1, 1])))
 
     def test_contrastive_batch_processing(self):
-        """
-        Verify that ContrastiveStrategy processes a collated tensor batch correctly.
-        Input is already collated by metric_learning_collate into (N, C, H, W) tensors.
-        """
+        """ContrastiveStrategy passes a collated tensor batch to the model."""
         strategy = ContrastiveStrategy(loss_fn=self.mock_loss_fn)
 
         # Pre-collated tensor batch (as metric_learning_collate would produce).
@@ -78,9 +72,7 @@ class TestStrategies(unittest.TestCase):
         self.assertEqual(passed_input.shape[1], 10)
 
     def test_contrastive_loss_normalization(self):
-        """
-        Verify that ContrastiveStrategy normalizes loss by batch size for logging.
-        """
+        """ContrastiveStrategy returns sum loss for backprop and logs mean loss per sample."""
         strategy = ContrastiveStrategy(loss_fn=self.mock_loss_fn)
 
         # Batch size of 4 with sum loss 10.0 produces an expected logged loss of 2.5.
@@ -97,9 +89,7 @@ class TestStrategies(unittest.TestCase):
         self.assertEqual(logs["loss"], 2.5) # Logged loss is normalized.
 
     def test_supervised_batch_processing(self):
-        """
-        Verify that SupervisedStrategy processes a collated tensor batch correctly.
-        """
+        """SupervisedStrategy passes a collated tensor batch to the model."""
         strategy = SupervisedStrategy()
 
         # Pre-collated tensor batch.

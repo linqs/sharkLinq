@@ -28,8 +28,6 @@ Handlers in `frontend/` call `backend/db/` for data. Only `db/` and its scripts 
 > by the selected subcommand's `--help`, for current options and defaults.
 
 A new database is set up with `init`, then `populate`, then `provision-owner`.
-A database created before expiring sessions were introduced runs `migrate-auth`
-instead of `init`.
 
 ### 1. Initialize Database (`init`)
 
@@ -49,23 +47,7 @@ python3 -m db.database init
 users, actions, proposals, or sessions. Pass `--force` to reset it anyway, and
 `--no-indexes` to skip the performance indexes when benchmarking.
 
-### 2. Upgrade Authentication Schema (`migrate-auth`)
-
-Existing databases created before expiring sessions were introduced must be
-upgraded before the app server will start:
-
-```bash
-python3 -m db.database migrate-auth
-```
-
-- The migration preserves users and invalidates legacy sessions, so every user
-  must log in again.
-- It is safe to rerun.
-- Fresh databases created by `init` already have the current schema.
-- The migration implementation in [`database.py`](database.py) is
-  authoritative for compatibility checks.
-
-### 3. Populate Database (`populate`)
+### 2. Populate Database (`populate`)
 
 This command reads prepared CSV files and imports them into the SQLite database.
 
@@ -113,7 +95,7 @@ wrong matches.
   and replacement behavior. Do not reproduce its table choices or parser
   defaults in other documentation.
 
-### 4. Provision First Owner (`provision-owner`)
+### 3. Provision First Owner (`provision-owner`)
 
 After initializing and populating a new database, provision its first owner
 through the trusted local command. A default `populate` does not touch the user
@@ -147,7 +129,7 @@ python3 -c 'from backend.db.user import derive_client_password, update_user_pass
 This derives the SHA-256 client representation, rehashes it with Argon2, and
 updates the user record in the configured database.
 
-### 5. Debug Database (`print`)
+### 4. Debug Database (`print`)
 
 Print database diagnostics to the console:
 
@@ -159,7 +141,7 @@ The command displays row counts and diagnostic samples for application data,
 followed by index and image-sync summaries. Authentication tables are
 count-only, so password hashes and stored session digests are not printed.
 
-### 6. Dump Database (`dump`)
+### 5. Dump Database (`dump`)
 
 Write the current database to table CSV files and the supported annotations
 format through the existing dump implementation:
@@ -190,7 +172,7 @@ Browser-triggered exports cannot select this trusted mode:
   authentication and session tables.
 - `ExportMode` is selected by server code rather than accepted from request data.
 
-### 7. Remove Unreferenced Images (`clear-images`)
+### 6. Remove Unreferenced Images (`clear-images`)
 
 Delete files in the configured image directory that no `Media` record
 references:

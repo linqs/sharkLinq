@@ -25,8 +25,6 @@ cd sharkLinq
 
 ### 2. Download and Position the Sample Data
 
-The sample dataset (`sm-data.zip`) is distributed as a GitHub Release asset because its model checkpoints and embedding files exceed GitHub's 100 MB per-file Git limit.
-
 > [!NOTE]
 > The sample download already includes formatted images, database CSVs, precomputed embeddings (`pre2019-sample-data`), and a trained model checkpoint (`omega_miew_arcface_random`). You do not need to clean data, train a model, or generate embeddings to run the app demo with the sample data.
 

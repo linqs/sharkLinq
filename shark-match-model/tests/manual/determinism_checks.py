@@ -17,10 +17,7 @@ from src.core import constants
 
 
 def _collect_batches(consume_draws, num_workers, seed=None):
-    """
-    Seed, optionally burn some RNG to stand in for model construction, then
-    build a loader through the production helper and collect its batches.
-    """
+    """Seed RNG, optionally burn draws, and collect batches from a DataLoader."""
     import src.config.config
     import src.learning.augmented_dataset
     import src.learning.pk_sampler
@@ -60,14 +57,7 @@ def _identical(left, right):
 
 
 def check_d2_dataloader_generator(num_workers=2):
-    """
-    D2: the augmentation stream must not depend on how many RNG draws model
-    construction consumed.
-
-    DataLoader takes its worker base-seed from `.random_(generator=...)`, which
-    falls back to the global RNG when no generator is given — so anything that
-    shifts the global stream upstream silently reshuffles augmentations.
-    """
+    """Check that DETERMINISTIC_DATALOADER isolates DataLoader batches from upstream global RNG draws."""
     print(f"D2  DataLoader generator (num_workers={num_workers})")
     print("      toggle | invariant to upstream draws | repeatable")
     results = {}
@@ -147,11 +137,7 @@ def check_d1_strict_determinism():
 
 
 def _train_and_capture_batches(extra_construction_draws):
-    """
-    Run a short training scenario and record the image batches the loop actually
-    consumed, after burning `extra_construction_draws` RNG draws to stand in for
-    a different model architecture (an added layer, a different LoRA rank).
-    """
+    """Run a short training loop after burning RNG draws and return the batches seen."""
     import io
     import contextlib
     import tempfile
@@ -163,8 +149,7 @@ def _train_and_capture_batches(extra_construction_draws):
     config, model, strategy, loader, dataset = tp.build_scenario(
         "triplet", torch.device("cpu"))
 
-    # Stands in for a differently-shaped model consuming a different number of
-    # draws during construction.
+    # Simulate extra RNG draws during model construction.
     if extra_construction_draws:
         torch.rand(extra_construction_draws)
 

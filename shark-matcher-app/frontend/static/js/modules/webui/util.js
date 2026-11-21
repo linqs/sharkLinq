@@ -439,20 +439,41 @@ function toggleVisibility(style = 'block', visibleOverride = false, invisibleOve
   }
 }
 
-// Render the description of a history or proposal item's description field
+// Render the description of a history or proposal item's description field.
 function renderResultDescription(actionNotes) {
-  actionNotes = JSON.parse(actionNotes);
-  const original = actionNotes.original;
-  const final = actionNotes.final;
+  let parsedNotes = {};
+  if (typeof actionNotes === 'string' && actionNotes.trim() !== '') {
+    try {
+      const parsed = JSON.parse(actionNotes);
+      if (parsed && typeof parsed === 'object') {
+        parsedNotes = parsed;
+      }
+    } catch {
+      parsedNotes = {};
+    }
+  } else if (actionNotes && typeof actionNotes === 'object') {
+    parsedNotes = actionNotes;
+  }
+
+  const original = (parsedNotes.original && typeof parsedNotes.original === 'object')
+    ? parsedNotes.original : null;
+  const final = (parsedNotes.final && typeof parsedNotes.final === 'object')
+    ? parsedNotes.final : null;
   const skipKeys = ['source', 'media', 'individual'];
   const descriptions = {};
+
+  const isEmptyObject = (obj) => !obj ||
+      Object.keys(obj).length === 0 ||
+      (Object.keys(obj).length === 1 && obj.id === -1);
+  const isOriginalEmpty = isEmptyObject(original);
+  const isFinalEmpty = isEmptyObject(final);
 
   for (const type of ['original', 'final']) {
     const data = (type === 'original') ? original : final;
     let descriptionString = '';
 
-    // Check if the object is the special "empty" object, represented by id: -1.
-    if (Object.keys(data).length === 1 && data.id === -1) {
+    // Render empty placeholder when the object is missing, empty, or the id: -1 sentinel.
+    if (isEmptyObject(data)) {
       descriptionString = `<div class="info-row" style="justify-content: center; font-style: italic; opacity: 0.6;">Empty</div>`;
     } else {
       // Build the description string, preserving key order.
@@ -462,7 +483,7 @@ function renderResultDescription(actionNotes) {
         }
 
         // If this section is populated and not one that should not be displayed, render it.
-        if (!data.hasOwnProperty(key) || hiddenKeys.includes(key)) {
+        if (!Object.prototype.hasOwnProperty.call(data, key) || hiddenKeys.includes(key)) {
           continue;
         }
 
@@ -471,13 +492,9 @@ function renderResultDescription(actionNotes) {
           return value === null || value === undefined || value === '' || value === 'null' || value === 'NULL';
         }
 
-        // Check if one of the objects is entirely empty
-        const isOriginalEmpty = (Object.keys(original).length === 1 && original.id === -1);
-        const isFinalEmpty = (Object.keys(final).length === 1 && final.id === -1);
-
         // Check if only one of original or final contains this key
-        const originalHasKey = original.hasOwnProperty(key);
-        const finalHasKey = final.hasOwnProperty(key);
+        const originalHasKey = Boolean(original) && Object.prototype.hasOwnProperty.call(original, key);
+        const finalHasKey = Boolean(final) && Object.prototype.hasOwnProperty.call(final, key);
         const onlyOneHasKey = (originalHasKey && !finalHasKey) || (!originalHasKey && finalHasKey);
 
         // If original and final differ, highlight this property.

@@ -1,4 +1,4 @@
-"""Validate app-owned inference snapshots at the matcher file boundary."""
+"""Load and validate inference snapshots exported by the web app."""
 
 import csv
 from dataclasses import dataclass
@@ -18,16 +18,16 @@ _CSV_COLUMN_COUNTS = {
 
 
 class SnapshotNotFoundError(FileNotFoundError):
-    """Indicate that a valid snapshot identifier has not been published."""
+    """Raised when a snapshot folder does not exist."""
 
 
 class SnapshotValidationError(ValueError):
-    """Indicate that a snapshot is malformed or violates its file boundary."""
+    """Raised when a snapshot is invalid or has files outside its folder."""
 
 
 @dataclass(frozen=True)
 class ValidatedInferenceSnapshot:
-    """Resolved paths and manifest for one fully validated snapshot."""
+    """Resolved paths and manifest for a validated snapshot."""
 
     snapshot_id: str
     directory: Path
@@ -37,7 +37,7 @@ class ValidatedInferenceSnapshot:
 
 
 def load_inference_snapshot(snapshot_id, snapshot_root=None):
-    """Validate one snapshot and return immutable resolved input paths."""
+    """Validate a snapshot folder, its manifest, and its CSVs, then return their resolved paths."""
     try:
         canonical_id = canonical_uuid4(snapshot_id, "snapshot_id")
     except ValueError as exc:
@@ -154,7 +154,7 @@ def _validate_csv(path, expected_columns, expected_rows):
 
 
 def _load_manifest(path):
-    """Read and validate the strict version-1 snapshot manifest."""
+    """Read and validate a snapshot's manifest.json."""
     try:
         return SnapshotManifestV1.model_validate_json(
             path.read_text(encoding="utf-8")

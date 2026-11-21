@@ -50,7 +50,7 @@ class TestEmbeddings(unittest.TestCase):
     Test suite for embeddings generation and update logic.
     """
 
-    # update_embeddings operates directly on model_dir while publication safety is covered by the generation contract tests.
+    # update_embeddings writes directly to model_dir.
 
     @patch('src.core.utils.get_model_metadata')
     @patch('src.cli.convert_data.prepare_annotations')
@@ -74,8 +74,7 @@ class TestEmbeddings(unittest.TestCase):
         self.assertEqual(prepare_args["input_dir"], "validated_csv_dir")
         self.assertNotEqual(
             prepare_args["output_directory"], "validated_csv_dir")
-        # store_embeddings(centroid=...) was split; the image half now also
-        # pins the source CSV directory on the generated dataset.
+        # Verify store_image_embeddings receives the source CSV directory.
         mock_store.assert_called_once_with(
             model_name="test_model",
             model_dir=model_dir,
@@ -170,8 +169,7 @@ class TestEmbeddings(unittest.TestCase):
         )
 
         self.assertEqual(result.new_filenames, ["img3.jpg"])
-        # Only label 7 (the added image) is affected. affected_labels is a flat
-        # set now that the per-focus dict is gone.
+        # Only label 7 (the added image) is affected.
         self.assertEqual(result.affected_labels, {7})
         mock_compute.assert_called_once()
         prepare_args = mock_prepare.call_args.kwargs
@@ -251,14 +249,7 @@ class TestEmbeddings(unittest.TestCase):
     def test_update_embeddings_failure_recovery(
             self, mock_exists, mock_load, mock_save, mock_load_model,
             _mock_create, _mock_prepare, mock_metadata):
-        """
-        Test that a model-loading failure propagates without writing embeddings.
-
-        The staging/rollback half of the original assertion moved to
-        run_pipeline (see the note above); what `update_embeddings` still owes
-        its caller is that it does not leave a half-written
-        stored_embeddings.pt behind when it fails.
-        """
+        """Model-loading failure propagates without writing stored_embeddings.pt."""
         mock_metadata.return_value = (True, "path/to/config.json", (100, 100), None)
         mock_exists.side_effect = lambda path: True
 
@@ -406,9 +397,7 @@ class TestEmbeddings(unittest.TestCase):
             torch.save(new_embs, os.path.join(tmpdir, "stored_embeddings.pt"))
             torch.save(new_ds, os.path.join(tmpdir, "stored_dataset.pt"))
 
-            # Build the UpdateResult the update pipeline would have produced.
-            # UpdateResult lost its old_focus_labels field along with the
-            # focus concept; it is now (new_filenames, affected_labels).
+            # Build the UpdateResult for the incremental centroid update.
             affected = embeddings._compute_affected_labels(old_ds, new_ds)
             update_result = embeddings.UpdateResult(
                 new_filenames=["e", "f"], affected_labels=affected)

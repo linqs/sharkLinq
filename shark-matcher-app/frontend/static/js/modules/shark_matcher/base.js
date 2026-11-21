@@ -1,4 +1,4 @@
-// Public browser API facade and miscellaneous application endpoints.
+// Browser API entry point re-exporting endpoint modules and app helpers.
 
 import * as Action from './action.js';
 import * as Core from './core.js';

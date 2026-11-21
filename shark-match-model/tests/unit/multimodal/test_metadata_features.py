@@ -1,10 +1,4 @@
-"""
-Tests for src.multimodal.metadata_features.
-
-Verifies feature ordering, encoding logic, and normalization stats are
-byte-for-byte compatible with the CLI behaviour of the previous
-engineer_metadata_features.py script.
-"""
+"""Tests for metadata feature encoding, ordering, and normalization stats."""
 import datetime
 import math
 import unittest
@@ -31,7 +25,7 @@ def _unix(year, month=6, day=15):
 
 
 class TestSoftEncoders(unittest.TestCase):
-    """Verify the probabilistic encoding rules match the original CLI."""
+    """Tests for soft categorical encoders."""
 
     def test_soft_sex(self):
         self.assertEqual(mf._soft_sex("M"), [1.0, 0.0])
@@ -194,7 +188,7 @@ class TestSoftFeatureOrdering(unittest.TestCase):
 
 
 class TestLengthAndTime(unittest.TestCase):
-    """Length normalization and time encoding match the original."""
+    """Tests for length normalization and cyclical time encoding."""
 
     def test_length_normalization(self):
         spec = mf.MetadataFeatureSpec(
@@ -265,7 +259,7 @@ class TestLengthAndTime(unittest.TestCase):
         v = mf.engineer_features(_make_media(99, time=None), spec, stats)
         self.assertAlmostEqual(v[0].item(), 0.0)
         self.assertAlmostEqual(v[1].item(), 0.0)
-        # Missing year -> 0.5 default per the original code.
+        # Missing year defaults to 0.5.
         self.assertAlmostEqual(v[2].item(), 0.5)
 
 

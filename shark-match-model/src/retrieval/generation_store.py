@@ -1,4 +1,4 @@
-"""Resolve, publish, retain, and roll back versioned embedding generations."""
+"""Create, resolve, prune, and roll back versioned embedding folders."""
 
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -33,12 +33,12 @@ STAGING_PREFIX = ".staging-"
 
 
 class GenerationValidationError(ValueError):
-    """Indicate that generation state is malformed or internally inconsistent."""
+    """Raised when an embedding generation folder or manifest is invalid."""
 
 
 @dataclass(frozen=True)
 class GenerationArtifactLayout:
-    """Artifact filenames selected by one retrieval configuration."""
+    """Filenames used by a given retrieval mode."""
 
     retrieval_mode: str
     image_embeddings: str
@@ -49,7 +49,7 @@ class GenerationArtifactLayout:
 
     @property
     def required_files(self):
-        """Return the complete artifact set required for this layout."""
+        """Return the files required for this retrieval mode."""
         required = {
             "stored_dataset.pt",
             self.image_embeddings,
@@ -64,7 +64,7 @@ class GenerationArtifactLayout:
 
 @dataclass(frozen=True)
 class ResolvedGeneration:
-    """One resolved immutable generation or a legacy flat embeddings directory."""
+    """A resolved versioned generation folder or legacy flat embeddings folder."""
 
     directory: Path
     generation_id: str | None
@@ -73,7 +73,7 @@ class ResolvedGeneration:
 
     @property
     def is_legacy(self):
-        """Return whether this resolution uses the legacy flat layout."""
+        """Return True when using the unversioned flat folder layout."""
         return self.generation_id is None
 
 
@@ -118,7 +118,7 @@ def publish_generation(
         *, embedding_set_root, embedding_set, model_name, source, snapshot_id,
         start_time, retrieval_mode, build, seed_previous=True,
         seed_neighbors=True, inherit_previous_identity=False):
-    """Build, validate, and atomically publish one immutable generation."""
+    """Build and validate a new embedding generation in staging, then switch current.json to it."""
     root = Path(embedding_set_root).resolve()
     root.mkdir(parents=True, exist_ok=True)
     get_generation_artifact_layout(retrieval_mode)
@@ -215,7 +215,7 @@ def publish_generation(
 
 
 def resolve_active_generation(embedding_set_root):
-    """Resolve the active generation directory for an embedding set, falling back to legacy flat layout if unversioned."""
+    """Return the active generation folder for an embedding set, or the flat root if unversioned."""
     root = Path(embedding_set_root).resolve()
     pointer_path = root / _CURRENT_POINTER_FILENAME
 
@@ -253,7 +253,7 @@ def resolve_active_directory(embedding_set_name):
 
 
 def rollback_generation(embedding_set_root):
-    """Atomically repoint an embedding set to its retained prior validated generation."""
+    """Switch current.json back to the most recent valid previous generation."""
     root = Path(embedding_set_root).resolve()
     _require_directory(root, "embedding set root")
     with _locked_generation_root(root):
@@ -286,7 +286,7 @@ def rollback_generation(embedding_set_root):
 
 def resolve_retrieval_mode(*, use_psl=False, use_multimodal=False,
                            use_stacked=False):
-    """Resolve legacy feature flags to one authoritative artifact mode."""
+    """Map boolean feature flags to a single retrieval mode name."""
     if use_stacked:
         return "stacked"
     if use_multimodal:
@@ -297,7 +297,7 @@ def resolve_retrieval_mode(*, use_psl=False, use_multimodal=False,
 
 
 def retrieval_mode_cli_flags(retrieval_mode):
-    """Return the embeddings CLI flags that produce a retrieval mode, inverting resolve_retrieval_mode()."""
+    """Return the CLI flags corresponding to a retrieval mode."""
     return {
         "multimodal": ["--use-multimodal"],
         "psl": ["--use-psl"],
@@ -306,7 +306,7 @@ def retrieval_mode_cli_flags(retrieval_mode):
 
 
 def get_generation_artifact_layout(retrieval_mode):
-    """Return the authoritative artifact layout for a retrieval mode."""
+    """Return the expected file layout for a retrieval mode."""
     try:
         return _ARTIFACT_LAYOUTS[retrieval_mode]
     except KeyError as exc:
@@ -347,7 +347,7 @@ def _require_directory(path, description):
 
 
 def _load_pointer(path):
-    """Read and validate the strict version-1 active-generation pointer."""
+    """Read and validate current.json."""
     try:
         return GenerationPointerV1.model_validate_json(
             path.read_text(encoding="utf-8")
@@ -359,7 +359,7 @@ def _load_pointer(path):
 
 
 def _load_manifest(path):
-    """Read and validate the strict version-1 generation manifest."""
+    """Read and validate a generation's manifest.json."""
     try:
         return GenerationManifestV1.model_validate_json(
             path.read_text(encoding="utf-8")
@@ -369,7 +369,7 @@ def _load_manifest(path):
 
 
 def _sha256(path):
-    """Return the streaming SHA-256 digest for one generation artifact."""
+    """Compute the lowercase SHA-256 checksum of a file."""
     digest = hashlib.sha256()
     with path.open("rb") as artifact_file:
         for chunk in iter(lambda: artifact_file.read(1024 * 1024), b""):
@@ -378,7 +378,7 @@ def _sha256(path):
 
 
 def _load_torch_artifact(path, description):
-    """Load one required Torch artifact as validation data."""
+    """Load a PyTorch file on CPU for validation."""
     try:
         return torch.load(path, map_location="cpu", weights_only=False)
     except Exception as exc:  # pylint: disable=broad-exception-caught
@@ -386,7 +386,7 @@ def _load_torch_artifact(path, description):
 
 
 def _is_generation_directory(path):
-    """Return whether a path names a canonical UUID generation directory."""
+    """Return True if path is a real folder named with a lowercase UUIDv4."""
     if path.is_symlink() or not path.is_dir():
         return False
     try:
@@ -397,7 +397,7 @@ def _is_generation_directory(path):
 
 
 def _sync_directory(directory):
-    """Sync directory-entry changes before the next publication stage."""
+    """Flush directory entry changes to disk with fsync."""
     directory_fd = os.open(directory, os.O_RDONLY)
     try:
         os.fsync(directory_fd)
@@ -406,7 +406,7 @@ def _sync_directory(directory):
 
 
 def _sync_generation_files(directory):
-    """Sync every completed artifact before making its directory immutable."""
+    """Flush every file in a staging folder to disk before renaming it."""
     for artifact_path in sorted(directory.iterdir()):
         _require_regular_file(
             artifact_path, f"generation artifact {artifact_path.name}"
@@ -417,7 +417,7 @@ def _sync_generation_files(directory):
 
 def _finalize_generation_directory(
         staging_directory, generations_directory, generation_id):
-    """Atomically finalize a completed staging directory under its UUID."""
+    """Flush staging files and rename the staging folder to its final UUID name."""
     final_directory = generations_directory / generation_id
     if final_directory.exists():
         raise GenerationValidationError("generation identifier already exists")
@@ -437,7 +437,7 @@ def _finalize_generation_directory(
 
 
 def _replace_current_pointer(root, generation_id, published_at):
-    """Write, sync, and atomically replace the active generation pointer."""
+    """Write current.json to a temp file, flush it, and rename it into place."""
     pointer = GenerationPointerV1(
         schema_version=GENERATION_SCHEMA_VERSION,
         generation_id=generation_id,
@@ -468,7 +468,7 @@ def _replace_current_pointer(root, generation_id, published_at):
 
 @contextmanager
 def _locked_generation_root(root):
-    """Hold the embedding set's cross-process publication lock."""
+    """Acquire an exclusive file lock on the embedding set directory."""
     lock_path = root / _GENERATION_LOCK_FILENAME
     open_flags = os.O_CREAT | os.O_RDWR
     if hasattr(os, "O_NOFOLLOW"):
@@ -690,7 +690,7 @@ def _validate_staged_generation(
 def _write_generation_manifest(
         staging_directory, generation_id, embedding_set, model_name, source,
         snapshot_id, created_at):
-    """Hash every staged artifact and write the strict generation manifest."""
+    """Hash every file in staging and write manifest.json."""
     files = {}
     for artifact_path in sorted(staging_directory.iterdir()):
         _require_regular_file(

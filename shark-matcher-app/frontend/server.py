@@ -491,7 +491,7 @@ def _is_object(value):
 # Accepted JSON shape per body key; keys not listed are left to their handlers.
 _BODY_SHAPES = {
     **dict.fromkeys(('id', 'source', 'media', 'individual', 'reference', 'major_id', 'minor_id',
-                     'user_id', 'source_id'), _is_id),
+                     'user_id', 'source_id', 'original', 'final'), _is_id),
     **dict.fromkeys(('ids', 'medias'), _is_id_list),
     'sex': _is_sex,
     **dict.fromkeys(('name', 'method', 'model', 'content', 'format', 'attribute', 'order',
@@ -506,7 +506,12 @@ _BODY_SHAPES = {
     **dict.fromkeys(('alternate_names', 'labels', 'tags'), _is_entry_list),
     **dict.fromkeys(('allow_unknown', 'get_full', 'get_source', 'paginate', 'include_images',
                      'public', 'sync', 'reveal', 'force'), _is_flag),
-    **dict.fromkeys(('original', 'final', 'preview'), _is_object),
+    'preview': _is_object,
+}
+
+# Route-specific overrides when a field name carries a different JSON shape on one endpoint.
+_ROUTE_BODY_SHAPES = {
+    '/api/proposal/post': {'original': _is_object, 'final': _is_object},
 }
 
 
@@ -514,15 +519,16 @@ def _validate_request(route_path, accepted_fields, data, from_query=False):
     """Validate request fields after authentication, so signed-out callers learn nothing about them."""
     if accepted_fields is not None:
         frontend.common.reject_unknown_fields(data, accepted_fields)
-    _validate_body(data)
+    _validate_body(data, route_path=route_path)
     if from_query and route_path in ('/api/individual/filter', '/api/match/filter'):
         _validate_query(data, matching=route_path == '/api/match/filter')
 
 
-def _validate_body(data):
+def _validate_body(data, route_path=None):
     """Reject a request body or query whose known keys hold impossible JSON shapes."""
+    route_shapes = _ROUTE_BODY_SHAPES.get(route_path, {})
     for key, value in data.items():
-        shape = _BODY_SHAPES.get(key)
+        shape = route_shapes.get(key, _BODY_SHAPES.get(key))
         if shape is not None and not shape(value):
             raise frontend.common.APIError(f'Invalid value for field: {key}.')
 

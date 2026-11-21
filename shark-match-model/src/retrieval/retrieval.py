@@ -333,7 +333,7 @@ class Retriever:
         return None
 
     def get_model_statuses(self):
-        """Return immutable model statuses in configured model order."""
+        """Return model statuses in configured order."""
         return list(self._model_statuses.values())
 
     def get_loaded_display_names(self) -> list:
@@ -341,7 +341,7 @@ class Retriever:
         return sorted(self.loaded_models.keys())
 
     def to_dict(self, compact=False, model=None):
-        """Return a dictionary representation of the retriever state for debugging or serialization."""
+        """Return the retriever state as a plain dictionary."""
         native_name = self._resolve_model(model)
         data = self._get_model_data(model)
 
@@ -406,7 +406,7 @@ class Retriever:
         return self.loaded_models[native_name]
 
     def _set_model_status(self, model_name, state, error=None):
-        """Replace one configured model's authoritative lifecycle status."""
+        """Update the load status for a configured model."""
         config = self._model_configs[model_name]
         status = ModelStatus(
             display_name=model_name,

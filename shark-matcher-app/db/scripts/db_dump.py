@@ -14,7 +14,7 @@ from core import app_utils
 
 
 class ExportMode(Enum):
-	"""Server-selected boundary for public exports and complete trusted dumps."""
+	"""Controls whether exports include only public tables or all tables."""
 
 	PUBLIC = "public"
 	TRUSTED = "trusted"

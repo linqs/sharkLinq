@@ -437,7 +437,7 @@ shark-match-model/
 │   ├── fixtures/             # committed CSV fixtures
 │   └── tools/                # test runner and Python lint gate
 ├── containerization/         # deferred deployment scaffolding
-├── docs/                     # release notes, maintainer notes, demo bundle checklist
+├── docs/                     # release notes and architecture notes
 ├── config/                   # tool configuration (pylintrc)
 ├── requirements/             # requirement sets used by setup.py, CI and Docker
 ├── setup.py                  # package and optional-dependency metadata

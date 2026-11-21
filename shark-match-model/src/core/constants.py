@@ -122,7 +122,7 @@ resolve_pairx_dir = _resolve_pairx_dir
 
 
 def _resolve_inference_snapshot_root():
-    """Return the configured root for app-owned inference snapshots."""
+    """Return the root folder where inference snapshots are stored."""
     configured_root = os.getenv("SHARK_INFERENCE_SNAPSHOT_ROOT")
     if configured_root:
         return os.path.abspath(os.path.expanduser(configured_root))

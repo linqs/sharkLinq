@@ -171,7 +171,7 @@ class StatsResponse(BaseModel):
 
 
 class EmbeddingsRequest(BaseModel):
-    """Request to generate one model's embeddings from an app-published snapshot."""
+    """Request to regenerate one model's embeddings from a snapshot."""
     model_name: str
     snapshot_id: str
     background: bool = False
@@ -179,7 +179,7 @@ class EmbeddingsRequest(BaseModel):
     @field_validator("snapshot_id")
     @classmethod
     def validate_snapshot_id(cls, value):
-        """Reject any snapshot identifier that is not a canonical UUIDv4."""
+        """Require a lowercase UUIDv4 snapshot ID."""
         return canonical_uuid4(value, "snapshot_id")
 
 
@@ -546,7 +546,7 @@ def _run_pipeline_subprocess(dir_name: str, model_name: str,
 def _run_embedding_pipeline(dir_name: str, model_name: str,
                             snapshot_id: str, retrieval_mode: str,
                             use_subprocess: bool = True):
-    """Adapt a server request to the shared embedding publication pipeline."""
+    """Validate the snapshot and run the embedding pipeline for a server request."""
     if retrieval_mode not in _SERVER_GENERATION_MODES:
         raise ValueError(
             f"Unsupported live generation mode: {retrieval_mode}"

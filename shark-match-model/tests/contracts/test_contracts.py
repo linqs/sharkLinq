@@ -1,4 +1,4 @@
-"""Tests for V1 boundary definitions."""
+"""Tests for V1 data models and path/address configuration helpers."""
 
 import json
 import os
@@ -28,7 +28,7 @@ SHA_B = "b" * 64
 
 
 def test_snapshot_manifest_accepts_the_v1_contract():
-    """The frozen version-1 snapshot wire shape is accepted."""
+    """Accept a valid v1 snapshot manifest."""
     manifest = SnapshotManifestV1.model_validate(_snapshot_manifest())
     assert manifest.snapshot_id == SNAPSHOT_ID
     assert set(manifest.files) == {"individuals.csv", "media.csv"}
@@ -47,7 +47,7 @@ def test_snapshot_manifest_rejects_noncanonical_identifiers(invalid_id):
 
 
 def test_snapshot_manifest_rejects_missing_or_unknown_files():
-    """A snapshot must contain exactly its two public CSV files."""
+    """Reject snapshots missing a required CSV or containing extra files."""
     payload = _snapshot_manifest()
     payload["files"].pop("media.csv")
     payload["files"]["users.csv"] = {"rows": 1, "sha256": SHA_B}
@@ -56,7 +56,7 @@ def test_snapshot_manifest_rejects_missing_or_unknown_files():
 
 
 def test_snapshot_manifest_rejects_unknown_top_level_fields():
-    """Unknown fields cannot silently extend a versioned manifest."""
+    """Reject unknown top-level fields in a snapshot manifest."""
     payload = _snapshot_manifest()
     payload["unexpected"] = True
     with pytest.raises(ValidationError):
@@ -64,7 +64,7 @@ def test_snapshot_manifest_rejects_unknown_top_level_fields():
 
 
 def test_generation_manifest_enforces_snapshot_source_pairing():
-    """Snapshot IDs are present only for snapshot-sourced generations."""
+    """Require a snapshot ID if and only if the generation source is a snapshot."""
     assert GenerationManifestV1.model_validate(_generation_manifest()).snapshot_id == SNAPSHOT_ID
     with pytest.raises(ValidationError):
         GenerationManifestV1.model_validate(_generation_manifest(snapshot_id=None))
@@ -75,7 +75,7 @@ def test_generation_manifest_enforces_snapshot_source_pairing():
 
 
 def test_generation_manifest_rejects_nested_or_missing_metadata_artifacts():
-    """Generation artifact names are flat and metadata is mandatory."""
+    """Reject nested file paths in a generation manifest."""
     nested = _generation_manifest()
     nested["files"] = {"nested/file.pt": {"size_bytes": 1, "sha256": SHA_A}}
     with pytest.raises(ValidationError):
@@ -83,7 +83,7 @@ def test_generation_manifest_rejects_nested_or_missing_metadata_artifacts():
 
 
 def test_generation_pointer_accepts_only_versioned_uuid_pointer():
-    """A valid versioned generation pointer preserves its UUID."""
+    """Accept a valid generation pointer and keep its generation ID."""
     pointer = GenerationPointerV1.model_validate({
         "schema_version": 1,
         "generation_id": GENERATION_ID,
@@ -93,7 +93,7 @@ def test_generation_pointer_accepts_only_versioned_uuid_pointer():
 
 
 def test_failed_model_status_requires_safe_diagnostic():
-    """Failed models require a structured safe diagnostic."""
+    """Require an error diagnostic when a model status is failed."""
     status = ModelStatus(
         display_name="MiewID Multimodal",
         embedding_set="miew_arcface",
@@ -119,7 +119,7 @@ def test_snapshot_root_defaults_to_shared_data_directory(monkeypatch):
 
 
 def test_snapshot_root_honors_explicit_environment_path(monkeypatch, tmp_path):
-    """The matcher honors an explicitly configured snapshot root."""
+    """Use SHARK_INFERENCE_SNAPSHOT_ROOT when set."""
     configured = tmp_path / "snapshots"
     monkeypatch.setenv("SHARK_INFERENCE_SNAPSHOT_ROOT", str(configured))
     assert constants.resolve_inference_snapshot_root() == str(configured)
@@ -138,7 +138,7 @@ def test_data_root_honors_an_absolute_override(monkeypatch, tmp_path):
 
 
 def test_data_root_rejects_a_relative_override(monkeypatch):
-    """A relative SHARK_DATA_ROOT would resolve differently per working directory, so it is refused."""
+    """Reject a relative SHARK_DATA_ROOT path."""
     monkeypatch.setenv("SHARK_DATA_ROOT", os.path.join("relative", "data"))
     with pytest.raises(ValueError, match="absolute"):
         constants.resolve_base_data_dir()
@@ -185,7 +185,7 @@ def test_app_test_mode_variable_does_not_redirect_matcher_data(tmp_path):
 
 
 def test_inference_bind_address_defaults_to_all_interfaces_on_8000(monkeypatch):
-    """Without overrides the inference server keeps its historical bind address."""
+    """Default the inference server to 0.0.0.0:8000."""
     monkeypatch.delenv("SHARK_INFERENCE_HOST", raising=False)
     monkeypatch.delenv("SHARK_INFERENCE_PORT", raising=False)
     assert constants.resolve_inference_bind_address() == ("0.0.0.0", 8000)
@@ -199,7 +199,7 @@ def test_inference_bind_address_honors_environment(monkeypatch):
 
 
 def test_model_spec_normalizes_legacy_fields():
-    """Legacy dictionary fields are mapped to canonical ModelSpec attributes."""
+    """Map legacy dict keys (name, dir, model) to ModelSpec fields."""
     spec = ModelSpec.model_validate({
         "name": "Legacy Name",
         "dir": "legacy_dir",
@@ -220,7 +220,7 @@ def test_model_spec_normalizes_legacy_fields():
 
 
 def test_model_spec_rejects_empty_identifiers():
-    """Empty model identifiers are rejected by the strict contract."""
+    """Reject empty display_name, embedding_set, or checkpoint values."""
     with pytest.raises(ValidationError):
         ModelSpec(display_name="", embedding_set="set", checkpoint="chk")
     with pytest.raises(ValidationError):
@@ -230,7 +230,7 @@ def test_model_spec_rejects_empty_identifiers():
 
 
 def test_validate_model_checkpoint_accepts_precanned_models():
-    """Pre-canned models bypass local checkpoint configuration checks."""
+    """Accept built-in model names without checking local files."""
     spec = ModelSpec(display_name="miew", embedding_set="miew", checkpoint="miew")
     validate_model_checkpoint(spec)
 

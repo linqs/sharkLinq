@@ -1,4 +1,4 @@
-"""Proposal and action pagination contracts for the immutable CI fixture."""
+"""Pagination tests for proposals and actions using the CI test data."""
 
 import pytest
 
@@ -72,7 +72,7 @@ ACTION_CASES = (
 
 @pytest.mark.parametrize(("case", "filters"), PROPOSAL_CASES)
 def test_proposal_filter_and_first_page_match_ci_baseline(case, filters):
-    """Proposal filtering and server page one share one ordered baseline."""
+    """Check that proposal filtering and page 1 match expected IDs."""
     expected = expected_ids("proposals", case)
     unpaginated = filter_and_sort(
         frontend.proposal.filter_proposals,
@@ -94,7 +94,7 @@ def test_proposal_filter_and_first_page_match_ci_baseline(case, filters):
 
 @pytest.mark.parametrize(("case", "filters"), ACTION_CASES)
 def test_action_filter_and_first_page_match_ci_baseline(case, filters):
-    """Action filtering and server page one share one ordered baseline."""
+    """Check that action filtering and page 1 match expected IDs."""
     expected = expected_ids("actions", case)
     unpaginated = filter_and_sort(
         frontend.action.filter_actions,
@@ -122,7 +122,7 @@ def test_action_filter_and_first_page_match_ci_baseline(case, filters):
     ),
 )
 def test_all_small_pages_cover_each_ci_baseline_once(resource, function, defaults):
-    """Small pages cover every immutable-fixture row without overlap."""
+    """Check that iterating through small pages returns every expected ID once."""
     expected = expected_ids(resource, "no_filter")
 
     def fetch_page(page):
@@ -146,7 +146,7 @@ def test_all_small_pages_cover_each_ci_baseline_once(resource, function, default
     ),
 )
 def test_default_page_size_remains_in_service(resource, function, defaults):
-    """Omitting page size preserves the application pagination default."""
+    """Check that omitting page_size uses the default page size of 50."""
     expected = expected_ids(resource, "no_filter")
     response = paginate(function, defaults, "time", {})
     assert_page_contract(response, expected, 1, DEFAULT_PAGE_SIZE)
@@ -160,7 +160,7 @@ def test_default_page_size_remains_in_service(resource, function, defaults):
     ),
 )
 def test_page_beyond_ci_baseline_is_empty(resource, function, defaults):
-    """A page beyond the immutable baseline is empty and terminal."""
+    """Check that requesting a page past the end returns empty results and has_more=False."""
     expected = expected_ids(resource, "no_filter")
     response = paginate(
         function,

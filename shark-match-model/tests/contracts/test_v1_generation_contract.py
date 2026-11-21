@@ -1,8 +1,4 @@
-"""Contract tests for atomic V1 embedding generations.
-
-These tests exercise the shared filesystem boundary used for resolving,
-publishing, retaining, and rolling back immutable embedding generations.
-"""
+"""Tests for creating, activating, retaining, and rolling back versioned embedding generations."""
 
 import hashlib
 import importlib
@@ -45,19 +41,19 @@ class _StoredDataset:
 
 
 def _generation_store():
-    """Import the proposed shared generation-storage implementation."""
+    """Import the generation_store module."""
     return importlib.import_module("src.retrieval.generation_store")
 
 
 def _embedding_pipeline():
-    """Import the existing embedding coordinator used by CLI and server calls."""
+    """Import the embeddings pipeline module."""
     return importlib.import_module("src.retrieval.embeddings")
 
 
 def _build_baseline_generation(marker):
     """Return a builder that writes one internally consistent baseline set."""
     def build(staging_dir, _previous_dir):
-        """Write the artifacts normally produced by the existing pipeline."""
+        """Write a minimal set of baseline embedding files to staging_dir."""
         staging_dir = Path(staging_dir)
         dataset = _StoredDataset(marker)
         torch.save(dataset, staging_dir / "stored_dataset.pt")
@@ -78,7 +74,7 @@ def _build_baseline_generation(marker):
 
 
 def _publish(store, embedding_set_root, marker):
-    """Publish a minimal offline generation through the proposed shared API."""
+    """Save a minimal offline generation via publish_generation."""
     return store.publish_generation(
         embedding_set_root=embedding_set_root,
         embedding_set="test_embeddings",
@@ -156,7 +152,7 @@ def test_publish_writes_metadata_manifest_and_atomic_pointer(tmp_path):
 @pytest.mark.parametrize("update_embeddings", [False, True])
 def test_pipeline_publishes_resolvable_full_and_incremental_generations(
         tmp_path, monkeypatch, update_embeddings):
-    """The real coordinator and publisher complete both primary build modes."""
+    """Full and incremental pipeline runs write an active, resolvable generation."""
     store = _generation_store()
     pipeline = _embedding_pipeline()
     embedding_set_root = tmp_path / "embedding-set"
@@ -172,7 +168,7 @@ def test_pipeline_publishes_resolvable_full_and_incremental_generations(
     def build_artifacts(
             _model_name, _embeddings_name, _args, staging_dir,
             initial_csv_dir, retrieval_mode):
-        """Write representative artifacts inside real publisher staging."""
+        """Write sample artifacts into the staging directory."""
         staging_dir = Path(staging_dir)
         assert retrieval_mode == "baseline"
         if update_embeddings:
@@ -213,7 +209,7 @@ def test_pipeline_publishes_resolvable_full_and_incremental_generations(
 
 
 def test_pipeline_records_validated_snapshot_provenance(tmp_path, monkeypatch):
-    """Server input identity reaches existing metadata and manifest writers."""
+    """Snapshot source and ID are saved to both manifest and metadata."""
     pipeline = _embedding_pipeline()
     snapshot_dir = tmp_path / "snapshot-input"
     snapshot_dir.mkdir()
@@ -263,7 +259,7 @@ def test_pipeline_records_validated_snapshot_provenance(tmp_path, monkeypatch):
 
 def test_pipeline_publishes_dataset_maintenance_as_a_new_generation(
         tmp_path, monkeypatch):
-    """Dataset maintenance updates copied staging and preserves provenance."""
+    """Dataset-only maintenance writes a new generation while keeping the original model name."""
     store = _generation_store()
     pipeline = _embedding_pipeline()
     embedding_set_root = tmp_path / "embedding-set"
@@ -275,7 +271,7 @@ def test_pipeline_publishes_dataset_maintenance_as_a_new_generation(
     )
 
     def regenerate(_model_name, _embeddings_name, _args, model_dir, csv_dir):
-        """Represent the existing dataset refresh against copied staging."""
+        """Update the staged dataset marker in place."""
         assert csv_dir == "/annotations/csv"
         dataset_path = Path(model_dir) / "stored_dataset.pt"
         dataset = torch.load(dataset_path, weights_only=False)
@@ -312,7 +308,7 @@ def test_pipeline_publishes_dataset_maintenance_as_a_new_generation(
 
 def test_pipeline_publishes_required_suggestions_as_a_new_generation(
         tmp_path, monkeypatch):
-    """Suggestion maintenance adds its cache without mutating active artifacts."""
+    """Suggestions-only maintenance writes suggestions.pt in a new generation without changing the old one."""
     store = _generation_store()
     pipeline = _embedding_pipeline()
     embedding_set_root = tmp_path / "embedding-set"
@@ -322,7 +318,7 @@ def test_pipeline_publishes_required_suggestions_as_a_new_generation(
 
     def store_suggestions(_embeddings_name, model_dir, retrieval_mode,
                           raise_on_error):
-        """Represent required suggestion generation in copied staging."""
+        """Write suggestions.pt into the staging directory."""
         assert retrieval_mode == "baseline"
         assert raise_on_error
         torch.save({"review": []}, Path(model_dir) / "suggestions.pt")
@@ -354,7 +350,7 @@ def test_pipeline_publishes_required_suggestions_as_a_new_generation(
 
 def test_required_suggestion_failure_preserves_active_pipeline_generation(
         tmp_path, monkeypatch):
-    """A maintenance failure cannot publish its copied staging generation."""
+    """A failed maintenance run leaves current.json unchanged and removes staging."""
     store = _generation_store()
     pipeline = _embedding_pipeline()
     embedding_set_root = tmp_path / "embedding-set"
@@ -409,7 +405,7 @@ def test_required_suggestion_failure_preserves_active_pipeline_generation(
 )
 def test_failure_before_pointer_publication_preserves_active_generation(
         tmp_path, monkeypatch, stage_function):
-    """Failure at any pre-publication stage leaves the active pointer unchanged."""
+    """Failure before updating current.json leaves the active generation unchanged."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     original = _publish(store, embedding_set_root, "old")
@@ -432,7 +428,7 @@ def test_failure_before_pointer_publication_preserves_active_generation(
 
 
 def test_builder_failure_preserves_active_generation_and_cleans_staging(tmp_path):
-    """Artifact-construction failure cannot change active state or leak staging."""
+    """A build callback error leaves the active generation unchanged and cleans up staging."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     original = _publish(store, embedding_set_root, "old")
@@ -461,7 +457,7 @@ def test_builder_failure_preserves_active_generation_and_cleans_staging(tmp_path
 
 
 def test_full_generation_does_not_seed_prior_artifacts(tmp_path):
-    """A full rebuild receives empty staging while retaining prior identity."""
+    """A full rebuild starts with an empty staging directory and leaves the prior generation intact."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     original = _publish(store, embedding_set_root, "old")
@@ -493,7 +489,7 @@ def test_full_generation_does_not_seed_prior_artifacts(tmp_path):
 
 
 def test_maintenance_publication_inherits_active_manifest_identity(tmp_path):
-    """A selected-artifact update retains its active generation provenance."""
+    """Maintenance updates inherit the previous generation's model name, source, and snapshot ID."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     original = store.publish_generation(
@@ -508,7 +504,7 @@ def test_maintenance_publication_inherits_active_manifest_identity(tmp_path):
     )
 
     def maintenance_build(staging_dir, previous_dir):
-        """Confirm maintenance starts from the active immutable generation."""
+        """Verify staging was seeded from the active generation."""
         assert previous_dir == original.directory
         assert torch.load(
             staging_dir / "stored_dataset.pt", weights_only=False
@@ -569,7 +565,7 @@ def test_real_row_count_validation_failure_preserves_active_generation(tmp_path)
 
 def test_retention_failure_does_not_invalidate_newly_published_generation(
         tmp_path, monkeypatch):
-    """Post-publication cleanup failure leaves the new complete pointer active."""
+    """A pruning error after updating current.json still keeps the new generation active."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     _publish(store, embedding_set_root, "old")
@@ -589,7 +585,7 @@ def test_retention_failure_does_not_invalidate_newly_published_generation(
 
 
 def test_retention_keeps_active_and_one_prior_generation(tmp_path):
-    """A third publication removes only the generation older than its prior."""
+    """Saving a third generation removes the first and keeps the two newest."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     first = _publish(store, embedding_set_root, "first")
@@ -617,7 +613,7 @@ def test_reader_holds_one_resolved_generation_during_concurrent_publish(tmp_path
     observed = {}
 
     def read_generation():
-        """Resolve once, wait for publication, then read only the held directory."""
+        """Resolve the active generation, wait for a new write, then read the held directory."""
         resolved = store.resolve_active_generation(embedding_set_root)
         reader_resolved.set()
         assert publish_complete.wait(timeout=5)
@@ -640,7 +636,7 @@ def test_reader_holds_one_resolved_generation_during_concurrent_publish(tmp_path
 
 def test_reader_resolves_old_generation_while_replacement_is_still_staged(
         tmp_path):
-    """Unpublished staging cannot become visible through the active resolver."""
+    """A staged build is not visible to readers until current.json is updated."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     old = _publish(store, embedding_set_root, "old")
@@ -651,7 +647,7 @@ def test_reader_resolves_old_generation_while_replacement_is_still_staged(
     errors = []
 
     def blocking_build(staging_dir, previous_dir):
-        """Hold a complete replacement in staging before publication."""
+        """Write replacement files into staging and wait until released."""
         try:
             result = _build_baseline_generation("new")(
                 staging_dir, previous_dir
@@ -712,13 +708,13 @@ def test_publishers_serialize_build_callbacks_with_file_lock(tmp_path):
     errors = []
 
     def blocking_build(staging_dir, previous_dir):
-        """Hold the first publication inside its build callback."""
+        """Block the first write inside its build callback until released."""
         first_entered.set()
         assert release_first.wait(timeout=5)
         return _build_baseline_generation("first")(staging_dir, previous_dir)
 
     def second_build(staging_dir, previous_dir):
-        """Record when the second publication passes the shared lock."""
+        """Mark when the second write acquires the lock and starts building."""
         second_entered.set()
         return _build_baseline_generation("second")(staging_dir, previous_dir)
 
@@ -756,7 +752,7 @@ def test_publishers_serialize_build_callbacks_with_file_lock(tmp_path):
 
 def test_directory_sync_failure_after_generation_rename_preserves_active(
         tmp_path, monkeypatch):
-    """A failed generation-directory sync removes only the unpublished output."""
+    """A sync error on the generations directory removes the new directory and keeps the old pointer."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     original = _publish(store, embedding_set_root, "old")
@@ -821,7 +817,7 @@ def test_legacy_flat_layout_is_used_only_when_pointer_is_absent(tmp_path):
 
 def test_publication_migrates_legacy_flat_artifacts_through_shared_staging(
         tmp_path):
-    """A legacy flat set can seed its first immutable active generation."""
+    """A flat embedding directory seeds the first versioned generation on update."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     embedding_set_root.mkdir()
@@ -859,7 +855,7 @@ def test_publication_migrates_legacy_flat_artifacts_through_shared_staging(
 
 
 def test_active_pointer_resolves_one_valid_generation(tmp_path):
-    """A valid pointer and matching manifest resolve the immutable directory."""
+    """A valid current.json and matching manifest resolve to the generation directory."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     generation_dir = _write_resolvable_generation(embedding_set_root)
@@ -912,7 +908,7 @@ def test_symlinked_pointer_is_invalid_not_absent(tmp_path):
 
 
 def test_rollback_repoints_to_valid_prior_generation_without_copying(tmp_path):
-    """Rollback validates and republishes the retained prior generation pointer."""
+    """Rollback switches current.json back to the previous generation without copying files."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     old = _publish(store, embedding_set_root, "old")
@@ -954,7 +950,7 @@ def test_rollback_rejects_corrupt_prior_and_preserves_active_pointer(tmp_path):
 
 
 def test_rollback_requires_a_retained_prior_generation(tmp_path):
-    """A first publication cannot roll back to the legacy flat root."""
+    """Rollback fails when only one generation exists."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     current = _publish(store, embedding_set_root, "only")
@@ -969,7 +965,7 @@ def test_rollback_requires_a_retained_prior_generation(tmp_path):
 
 
 def test_incremental_update_transitions_fat_generation_to_slim_layout(tmp_path):
-    """Updating a pre-migration generation with seed_neighbors=False drops neighbor files."""
+    """Updating with seed_neighbors=False omits neighbor files from the new generation."""
     store = _generation_store()
     embedding_set_root = tmp_path / "test_embeddings"
     pre_migration = _publish(store, embedding_set_root, "legacy_fat")

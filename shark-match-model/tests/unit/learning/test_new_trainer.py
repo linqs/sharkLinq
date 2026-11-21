@@ -1,11 +1,4 @@
-"""
-Tests for ``src.learning.trainer.new_trainer.RobustTrainer``.
-
-Uses a real ``FullConfig`` (validated via ``utils.ensure_config_schema``)
-seeded from ``src.config.config.CONFIGS["test_config"]`` rather than ``MagicMock``,
-so JSON serialization (``training_summary.json``) and arithmetic on config
-fields (``views_per_image``, throughput) behave as in production.
-"""
+"""Tests for RobustTrainer, config overrides, resume handling, and overwrite guards."""
 import contextlib
 import copy
 import io
@@ -37,10 +30,7 @@ def _make_config(
         early_stopping_enabled: bool = False,
         evaluator=None,
 ):
-    """
-    Build a validated ``FullConfig`` from the reserved ``test_config`` entry,
-    applying the per-test overrides we need.
-    """
+    """Build a validated FullConfig from test_config with test overrides."""
     raw = copy.deepcopy(src.config.config.CONFIGS["test_config"])
     raw["training"]["epochs"] = epochs
     raw["training"]["gradient_accumulation_steps"] = gradient_accumulation_steps
@@ -64,11 +54,7 @@ class _MockModel(nn.Module):
 
 
 class _MockStrategy(new_trainer.TrainingStrategy):
-    """
-    Runs the real model so its parameters receive gradients (otherwise
-    optimizer.step() has nothing to update); returns the embeddings' sum
-    as a differentiable loss.
-    """
+    """Run the model and return the sum of embeddings as a differentiable loss."""
     def process_batch(self, model, batch, device):
         images, _ = batch
         embeddings = model(images.to(device))
@@ -224,7 +210,7 @@ class TestNewTrainer(unittest.TestCase):
         trainer.train(_FakeLoader(num_batches=1), os.path.join(self.test_dir, "models"))
 
         prefixes = [call.args[1] for call in trainer.save_model.call_args_list]
-        # 1× init + 2× best (epoch 0 + epoch 2) + 3× last (every epoch).
+        # 1 init + 2 best (epoch 0 and 2) + 3 last (every epoch).
         self.assertEqual(prefixes.count("init"), 1)
         self.assertEqual(prefixes.count("best"), 2)
         self.assertEqual(prefixes.count("last"), 3)

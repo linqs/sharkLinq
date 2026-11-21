@@ -332,6 +332,20 @@ def test_proposal_create_archive_and_delete(page, browser_app, login):
     assert deleted.value.status == 200
 
 
+def test_proposal_search_with_empty_notes_renders_without_error(page, browser_app, login):
+    """Unfiltered proposal search renders proposals with empty notes without raising an alert."""
+    login()
+    dialogs = []
+    page.on('dialog', lambda dialog: (dialogs.append(dialog.message), dialog.dismiss()))
+    page.goto(browser_app.url + '/#proposals?status=all')
+    page.wait_for_load_state('networkidle')
+    assert dialogs == []
+    empty_proposal = page.locator('.results-item', has_text='Proposal ID: 10')
+    expect(empty_proposal).to_be_visible()
+    expect(empty_proposal).to_contain_text('Source Object ID: Empty')
+    expect(empty_proposal).to_contain_text('Target Object ID: Empty')
+
+
 def test_merge_and_embedding_update(page, browser_app, login):
     """Merge writes and the app-owned embedding snapshot flow remain available."""
     login()

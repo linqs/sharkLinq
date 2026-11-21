@@ -1,4 +1,4 @@
-"""End-to-end contracts for disposable rounds and shared mutation parity."""
+"""Tests for demo mode rounds, grading, and server permissions."""
 
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
@@ -26,7 +26,7 @@ from tests.frontend import test_server as server_tests
 
 @pytest.fixture(name="demo_database")
 def fixture_demo_database(tmp_path, monkeypatch):
-    """Use the existing server-test schema/account provisioner with a tiny dataset."""
+    """Create a small temporary database with a test user."""
     path = tmp_path / "live.db"
     user, password = server_tests.TestServerFrontend._initialize_auth_database(
         path, "demo_tester", "demo-password")
@@ -51,21 +51,21 @@ def fixture_demo_database(tmp_path, monkeypatch):
 
 @pytest.fixture(name="session")
 def fixture_session(demo_database):
-    """Dispose of the same runtime used by the production HTTP server."""
+    """Create and clean up a DemoSession for the test database."""
     value = demo.runtime.DemoSession(demo_database.path)
     yield value
     value.close()
 
 
 def dataset_rows(path):
-    """Read the complete reset boundary to compare before and after failures."""
+    """Read all rows from demo data tables to compare database state."""
     with sqlite3.connect(path) as connection:
         return {table: connection.execute(f"SELECT * FROM {table} ORDER BY id").fetchall()
                 for table in demo.runtime.DATA_TABLES}
 
 
 def selections(session):
-    """Inspect immutable membership with its current disposable source."""
+    """Return selected individuals with their original and current source IDs."""
     with sqlite3.connect(session.database_path) as connection:
         return connection.execute("""
             SELECT truth.individual, truth.original_source, image.source
@@ -75,7 +75,7 @@ def selections(session):
 
 
 def merge(session, major, minor):
-    """Exercise the real merge handler and preview contract."""
+    """Merge two individuals inside the active demo session."""
     with session.scope(), closing(app_utils.db_connect()) as connection:
         reference = connection.execute(
             "SELECT reference FROM Individuals WHERE id = ?", (major,)).fetchone()[0]
@@ -86,7 +86,7 @@ def merge(session, major, minor):
 
 
 def test_sampling_reset_and_restart(session, demo_database):
-    """Reset restores all edits, never samples singletons, and remains reproducible."""
+    """Check that reset undoes edits, skips singletons, and repeats the sample."""
     live = dataset_rows(demo_database.path)
     assert session.status()["maximum"] == 4
     assert session.status()["selected"] == 0
@@ -262,7 +262,7 @@ def test_scopes_are_thread_local(session, demo_database):
 
 
 def test_stats_cache_does_not_cross_datasets(session, monkeypatch):
-    """A warm live cache must not supply counts for the disposable round."""
+    """Check that the live stats cache is not reused inside a demo session."""
     monkeypatch.setattr(frontend.project.frontend.inference_client, "get_stats", lambda: {})
     frontend.project.invalidate_dataset_stats()
     try:
@@ -410,7 +410,7 @@ def test_orchestrator_forwards_demo_flag(monkeypatch, tmp_path):
 
 @pytest.mark.parametrize("reverse", [False, True])
 def test_ordinary_merge_keeps_chosen_survivor_and_logs_actions(demo_database, reverse):
-    """The shared ordering fix also preserves ordinary merges and their history."""
+    """Check that normal merges keep the chosen survivor and log actions."""
     major, minor = (200, 100) if reverse else (100, 200)
     preview = {"reference": 4 if reverse else 1, "sex": None, "length": None,
                "alternate_names": [], "tags": [], "labels": []}
@@ -425,7 +425,7 @@ def test_ordinary_merge_keeps_chosen_survivor_and_logs_actions(demo_database, re
 
 
 def test_demo_post_media_never_renames_disk_files(session, demo_database, monkeypatch):
-    """Guards ensure disk image files are never renamed during a demo session."""
+    """Check that posting media in demo mode does not rename image files on disk."""
     renamed = []
     monkeypatch.setattr(frontend.media.os, "rename", lambda src, dst: renamed.append((src, dst)))
     with session.scope():

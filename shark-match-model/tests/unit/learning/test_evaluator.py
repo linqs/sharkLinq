@@ -67,12 +67,7 @@ class _FusionConcatModel(torch.nn.Module):
 # ---------------------------------------------------------------------------
 
 def _three_cluster_corpus(samples_per_class: int = 2):
-    """
-    Build deterministic 3-class clusters along the first 3 axes of an
-    ``embed_dim``-dim space. Samples of the same class are identical, so
-    every same-class neighbor sits at distance 0 and other classes at
-    distance sqrt(2) — KNN ordering is unambiguous.
-    """
+    """Build 3 orthogonal unit clusters so same-class distance is 0 and cross-class distance is sqrt(2)."""
     embed_dim = 8
     centers = torch.eye(3, embed_dim)  # [[1,0,0,...], [0,1,0,...], [0,0,1,...]]
 
@@ -144,13 +139,7 @@ class TestComputeEmbeddings(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class TestHitsAtKImageOnly(unittest.TestCase):
-    """
-    Image-only path through the default ``embed_fn``.
-
-    With two identical samples per class, every train query's nearest
-    neighbor in the gallery (after skipping self at index 0) is its
-    same-class twin — every hit@k is 1.0.
-    """
+    """Tests for image-only hits_at_k using the default embed_fn."""
 
     def setUp(self):
         self.embeddings, self.labels = _three_cluster_corpus(samples_per_class=2)
@@ -209,10 +198,7 @@ class TestHitsAtKImageOnly(unittest.TestCase):
 
 
 class TestHitsAtKFusionPath(unittest.TestCase):
-    """
-    Fusion-shaped datasets via a custom ``embed_fn`` — exercises the same
-    code path as ``multimodal_evaluator.multimodal_hits_at_k``.
-    """
+    """Tests for hits_at_k with a custom multimodal embed_fn."""
 
     def _fusion_embed(self, model, batch, device):
         image_emb, metadata, _ = batch
@@ -237,9 +223,7 @@ class TestHitsAtKFusionPath(unittest.TestCase):
             _FusionConcatModel(), train_ds, valid_ds, torch.device("cpu"),
             embed_fn=self._fusion_embed,
         )
-        # Image emb is 8-dim and metadata 4-dim -> fused 12-dim. After L2
-        # normalization the metadata-zero dims don't affect ordering, so
-        # hit@1 must still be perfect.
+        # Zero metadata dims do not affect L2-normalized distances, so hit@1 stays 1.0.
         self.assertAlmostEqual(metric, 1.0)
         for k in (1, 5, 10, 25, 50, 100):
             self.assertIn(f"average_train_hit_at_{k}", results)
@@ -249,10 +233,7 @@ class TestHitsAtKFusionPath(unittest.TestCase):
 class TestHitsAtKEdgeCases(unittest.TestCase):
 
     def test_singleton_classes_are_skipped(self):
-        """
-        Train samples whose label only appears once contribute nothing to
-        average_train_hit_at_k — the gallery has no possible hit for them.
-        """
+        """Singleton classes are excluded from average_train_hit_at_k because they have no gallery match."""
         # 2 of label 0, 1 of label 1 (singleton), 2 of label 2.
         embeddings = torch.tensor([
             [1.0, 0, 0, 0, 0, 0, 0, 0],

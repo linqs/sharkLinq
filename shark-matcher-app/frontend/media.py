@@ -439,7 +439,7 @@ def save_media(handler, path, **kwargs):
 # pylint: disable=unused-argument, too-many-locals, too-many-branches, too-many-statements, too-many-return-statements
 @app_utils.accepts("items")
 def upload_batch(handler, path, **kwargs):
-    """Atomically validate, database-persist, and file-store a batch of uploaded images."""
+    """Validate, save to disk, and insert a batch of uploaded images in one transaction."""
     print("Upload Batch function called")
 
     items = kwargs.get("items", [])
@@ -466,9 +466,7 @@ def upload_batch(handler, path, **kwargs):
         if item.get('data_url'):
             _data_url_to_bytes(item['data_url'])
 
-    # -----------------------------------------------------------------------
-    # Phase 1: Pre-validation — check for duplicates before any writes.
-    # -----------------------------------------------------------------------
+    # Check for duplicates before writing anything.
     errors = []
 
     # Collect batch hashes/names/filenames for within-batch duplicate checking.
@@ -535,9 +533,7 @@ def upload_batch(handler, path, **kwargs):
         }
         return json.dumps(error_response), http.HTTPStatus.CONFLICT, None
 
-    # -----------------------------------------------------------------------
-    # Phase 2: Atomic processing — single transaction for all DB writes.
-    # -----------------------------------------------------------------------
+    # Write all DB records and files in one transaction.
     connection = app_utils.db_connect()
     saved_files = []  # Track saved file paths for rollback.
 
@@ -642,7 +638,7 @@ def upload_batch(handler, path, **kwargs):
                 "name": item_name,
             })
 
-        # --- Phase 3: Commit ---
+        # Commit the transaction.
         connection.commit()
         connection.close()
 
@@ -689,7 +685,7 @@ def upload_batch(handler, path, **kwargs):
 
 
 def _image_path(filename, filename_only=False):
-    """Apply the shared containment boundary to application image operations."""
+    """Resolve an image path and reject paths outside IMAGES_DIR."""
     try:
         return app_utils.resolve_served_path(app_constants.IMAGES_DIR, filename, filename_only)
     except (ValueError, OSError) as ex:

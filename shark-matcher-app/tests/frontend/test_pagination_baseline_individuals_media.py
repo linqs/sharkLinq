@@ -1,4 +1,4 @@
-"""Individual and media contracts for the immutable committed CI fixture."""
+"""Pagination and filtering tests for individuals and media using the CI test data."""
 
 import pytest
 
@@ -92,7 +92,7 @@ MEDIA_CASES = (
 
 @pytest.mark.parametrize(("case", "filters"), INDIVIDUAL_CASES)
 def test_individual_filter_and_first_page_match_ci_baseline(case, filters):
-    """Individual filtering and server page one share one ordered baseline."""
+    """Check that individual filtering and page 1 match expected IDs."""
     expected = expected_ids("individuals", case)
     unpaginated = filter_and_sort(
         frontend.individual.filter_individuals,
@@ -114,7 +114,7 @@ def test_individual_filter_and_first_page_match_ci_baseline(case, filters):
 
 @pytest.mark.parametrize(("case", "filters"), MEDIA_CASES)
 def test_media_filter_matches_ci_baseline(case, filters):
-    """Media filtering preserves its exact browser-visible ordered result."""
+    """Check that media filtering returns the expected IDs in order."""
     expected = expected_ids("media", case)
     results = filter_and_sort(
         frontend.media.filter_medias,
@@ -126,7 +126,7 @@ def test_media_filter_matches_ci_baseline(case, filters):
 
 
 def test_all_small_individual_pages_cover_ci_baseline_once():
-    """Small pages cover every immutable-fixture individual without overlap."""
+    """Check that iterating through small pages returns every individual ID once."""
     expected = expected_ids("individuals", "no_filter")
 
     def fetch_page(page):
@@ -143,7 +143,7 @@ def test_all_small_individual_pages_cover_ci_baseline_once():
 
 
 def test_individual_default_page_size_remains_in_service():
-    """Omitting page size preserves the application pagination default."""
+    """Check that omitting page_size uses the default page size of 50."""
     expected = expected_ids("individuals", "no_filter")
     response = paginate(
         frontend.individual.filter_individuals,
@@ -155,7 +155,7 @@ def test_individual_default_page_size_remains_in_service():
 
 
 def test_individual_page_beyond_ci_baseline_is_empty():
-    """A page beyond the immutable baseline is empty and terminal."""
+    """Check that requesting a page past the end returns empty results and has_more=False."""
     expected = expected_ids("individuals", "no_filter")
     response = paginate(
         frontend.individual.filter_individuals,
@@ -170,4 +170,4 @@ def test_individual_page_beyond_ci_baseline_is_empty():
 
 @pytest.mark.skip(reason="Server-side media pagination is deferred to V2 large-query work.")
 def test_media_server_pagination_contract_is_deferred():
-    """Track the intentional media-pagination boundary explicitly."""
+    """Placeholder test for future server-side media pagination."""

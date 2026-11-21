@@ -1,6 +1,6 @@
-"""Create immutable, public inference snapshots from the app database.
+"""Export database snapshots for the inference service.
 
-Reads inference data, writes a strict manifest, and atomically publishes completed snapshots beneath the configured snapshot root.
+Exports the public Individuals and Media tables to CSV, writes a manifest, and moves the folder into place once complete.
 """
 
 from datetime import datetime, timezone
@@ -28,7 +28,7 @@ _DEFAULT_STAGING_MAX_AGE_SECONDS = 24 * 60 * 60
 
 
 def _sha256(path):
-    """Return the lowercase SHA-256 digest of one completed file."""
+    """Compute the lowercase SHA-256 checksum of a file."""
     digest = hashlib.sha256()
     with path.open("rb") as input_file:
         for chunk in iter(lambda: input_file.read(1024 * 1024), b""):
@@ -37,7 +37,7 @@ def _sha256(path):
 
 
 def _snapshot_file(path):
-    """Build manifest metadata from one CSV written by the shared exporter."""
+    """Count rows and compute the SHA-256 checksum for an exported CSV."""
     rows = app_utils.load_csv_file(path)
     if rows is None:
         raise FileNotFoundError(f"snapshot CSV was not written: {path.name}")
@@ -45,7 +45,7 @@ def _snapshot_file(path):
 
 
 def _write_manifest(path, manifest):
-    """Write and sync the manifest after all snapshot data files are complete."""
+    """Write the manifest JSON to disk and flush it with fsync."""
     with path.open("w", encoding="utf-8") as output_file:
         json.dump(manifest, output_file, indent=2, sort_keys=True)
         output_file.write("\n")
@@ -54,9 +54,9 @@ def _write_manifest(path, manifest):
 
 
 def create_inference_snapshot(db_path=None, snapshot_root=None):
-    """Create and atomically publish one app-owned inference snapshot from public Individuals and Media tables.
+    """Export the public Individuals and Media tables to a new snapshot folder and return its UUID.
 
-    Returns the canonical UUID identifying the immutable completed snapshot.
+    Files are written to a temporary staging folder first and renamed into place so readers never see partial snapshots.
     """
     database_path = Path(db_path or app_constants.DB_PATH)
     root = Path(snapshot_root or app_constants.INFERENCE_SNAPSHOT_ROOT)
@@ -109,7 +109,7 @@ def create_inference_snapshot(db_path=None, snapshot_root=None):
 
 
 def snapshot_created_at(snapshot_id, snapshot_root=None):
-    """Return a completed snapshot's creation time in epoch seconds, or None when it is not a readable app snapshot."""
+    """Return a snapshot's creation time in epoch seconds, or None if unreadable."""
     try:
         directory = Path(snapshot_root or app_constants.INFERENCE_SNAPSHOT_ROOT) / canonical_snapshot_id(snapshot_id)
         with open(directory / SNAPSHOT_MANIFEST_FILENAME, encoding="utf-8") as manifest_file:
@@ -121,7 +121,7 @@ def snapshot_created_at(snapshot_id, snapshot_root=None):
 
 def cleanup_abandoned_snapshot_staging(
         snapshot_root=None, older_than_seconds=None):
-    """Remove abandoned staging directories older than the cutoff age without touching completed snapshots."""
+    """Delete leftover staging folders older than older_than_seconds without touching completed snapshots."""
     root = Path(snapshot_root or app_constants.INFERENCE_SNAPSHOT_ROOT)
     maximum_age = (
         _DEFAULT_STAGING_MAX_AGE_SECONDS

@@ -1,4 +1,4 @@
-"""Browser tests reuse the production HTTP harness and immutable database fixture."""
+"""Pytest fixtures for browser tests."""
 
 import http.server
 import json
@@ -21,13 +21,13 @@ WEB_FONT_HOSTS = re.compile(r"^https://fonts\.(googleapis|gstatic)\.com/")
 
 @pytest.fixture(autouse=True)
 def block_web_fonts(page):
-    """Abort the stylesheet's web-font requests so page loads never wait on the network."""
+    """Block web-font requests so page loads do not wait on the network."""
     page.route(WEB_FONT_HOSTS, lambda route: route.abort())
 
 
 @pytest.fixture
 def browser_app(tmp_path, monkeypatch, setup_test_database):
-    """Serve disposable data with deterministic inference at its HTTP boundary."""
+    """Start the app server and a mock inference server with a temporary database."""
     database = tmp_path / "browser.db"
     with sqlite3.connect(setup_test_database) as original:
         with sqlite3.connect(database) as copy:
@@ -56,7 +56,7 @@ def browser_app(tmp_path, monkeypatch, setup_test_database):
             backend.db.user.derive_client_password("browser-password"))
 
     class InferenceHandler(http.server.BaseHTTPRequestHandler):
-        """Fixed service responses, with real application-to-service HTTP."""
+        """Mock inference HTTP handler returning fixed JSON responses."""
 
         def log_message(self, *_args):
             pass
@@ -100,7 +100,7 @@ def browser_app(tmp_path, monkeypatch, setup_test_database):
 
 @pytest.fixture
 def login(page, browser_app):
-    """Log in through the actual browser form and surface unexpected JS errors."""
+    """Log in through the browser form and fail on unexpected JS errors."""
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
 

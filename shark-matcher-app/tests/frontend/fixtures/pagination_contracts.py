@@ -1,4 +1,4 @@
-"""Shared contracts for immutable-fixture pagination tests."""
+"""Shared helpers for pagination tests."""
 
 import http
 import json
@@ -10,17 +10,17 @@ BASELINES = json.loads(
 
 
 def expected_ids(resource, case):
-    """Return the ordered immutable-fixture IDs for one filter case."""
+    """Return the expected ordered IDs for a filter case."""
     return BASELINES[resource][case]
 
 
 def ids_of(results):
-    """Return ordered IDs from serialized API results."""
+    """Return the list of IDs from API result dicts."""
     return [result["id"] for result in results]
 
 
 def filter_and_sort(function, defaults, sort_attribute, overrides):
-    """Call an unpaginated filter and apply its browser-visible ordering."""
+    """Run an unpaginated filter and sort results in descending order."""
     arguments = defaults.copy()
     arguments.update(overrides)
     results, status, _ = function(None, "", **arguments)
@@ -33,7 +33,7 @@ def filter_and_sort(function, defaults, sort_attribute, overrides):
     )
 
 
-# The explicit page controls keep call sites readable across three endpoint suites.
+# Keep page arguments explicit for readability across test files.
 # pylint: disable=too-many-arguments
 def paginate(
     function,
@@ -44,7 +44,7 @@ def paginate(
     page=1,
     page_size=None,
 ):
-    """Call an implemented server pagination path with normalized arguments."""
+    """Call a filter endpoint with pagination enabled."""
     arguments = defaults.copy()
     arguments.update(overrides)
     arguments.update(
@@ -63,7 +63,7 @@ def paginate(
 
 
 def assert_page_contract(response, expected, page, page_size):
-    """Assert one response envelope and its exact ordered page slice."""
+    """Check pagination response fields and the returned page of IDs."""
     offset = (page - 1) * page_size
     expected_page = expected[offset: offset + page_size]
     assert response == {
@@ -77,7 +77,7 @@ def assert_page_contract(response, expected, page, page_size):
 
 
 def collect_paginated_ids(fetch_page):
-    """Collect every page while rejecting overlap or inconsistent totals."""
+    """Fetch all pages and check for duplicate IDs or mismatched totals."""
     collected = []
     page = 1
     total_count = None

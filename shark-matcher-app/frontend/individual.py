@@ -283,17 +283,11 @@ def filter_individuals(handler, path, connection=None, **kwargs):
             else:
                  candidate_individual_ids = candidate_individual_ids.intersection(assoc_count_ids)
 
-        # Early return for callers that only need the filtered ID set, not
-        # hydrated Individual objects (e.g. the review handler intersecting
-        # search results with its suggestion list).
+        # Return early when the caller only needs matching IDs.
         if return_ids_only:
             return candidate_individual_ids, http.HTTPStatus.OK, None
 
-        # ── Paginated path ────────────────────────────────────────────────────
-        # Sort candidate IDs via a lightweight SQL helper (no heavy JOINs), slice
-        # to the requested page, then materialize full individuals only for that
-        # page. candidate_individual_ids is either None ("all source individuals")
-        # or a set of source IDs produced by the funnel above.
+        # Sort candidate IDs in SQL, slice to the requested page, then load full records for that page.
         paginate = kwargs.get("paginate") in (True, "true", "True", 1, "1")
         if paginate:
             page = max(1, int(kwargs.get("page") or 1))

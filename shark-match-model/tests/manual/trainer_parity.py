@@ -25,10 +25,7 @@ from src.learning.trainer import new_trainer
 
 SEED = 42
 
-# Small enough to run in seconds, large enough to exercise the paths that
-# matter: 8 identities gives PKSampler(p=2) four batches per epoch, and
-# gradient_accumulation_steps=2 makes two optimiser steps per epoch so both
-# the accumulate branch and the flush branch are taken.
+# 8 identities gives 4 PK batches per epoch; accumulation=2 exercises both accumulate and flush steps.
 NUM_IDENTITIES = 8
 IMAGES_PER_IDENTITY = 3
 IMAGE_SIZE = 32
@@ -50,13 +47,7 @@ def seed_all(seed=SEED):
 
 
 class PseudoIndividualDataset(torch.utils.data.Dataset):
-    """
-    Stand-in for ``IndividualDataset`` with the same surface the training
-    pipeline uses: integer indexing to ``(image, label)`` and ``get_labels()``.
-
-    Images are drawn once from a seeded generator and held in memory, so the
-    dataset contributes no filesystem or RNG variance to a run.
-    """
+    """In-memory deterministic dataset matching the IndividualDataset interface."""
 
     def __init__(self, num_identities=NUM_IDENTITIES,
                  images_per_identity=IMAGES_PER_IDENTITY,
@@ -91,10 +82,7 @@ class PseudoIndividualDataset(torch.utils.data.Dataset):
 
 
 class TinyBackbone(torch.nn.Module):
-    """
-    Minimal stand-in for MiewID/ViT. Includes a BatchNorm so the trainer's
-    ``freeze_bn_stats`` handling and BN-stat logging are exercised.
-    """
+    """Small CNN backbone with BatchNorm2d to exercise freeze_bn_stats and BN logging."""
 
     def __init__(self, output_dim=EMBEDDING_DIM):
         super().__init__()
@@ -251,13 +239,7 @@ def build_scenario(loss_name, device, single_view=False, early_stop=False,
 
 
 def capture_pipeline(loader):
-    """
-    Fingerprint the data pipeline alone: the exact tensors the sampler,
-    augmentations and collate function hand to the training loop.
-
-    Captured before training so a data-pipeline change is distinguishable from
-    a training-loop change.
-    """
+    """Record the exact batches produced by the loader so data-pipeline changes are isolated from training."""
     seed_all()
     images, labels = [], []
     for batch_images, batch_labels in loader:
@@ -267,12 +249,7 @@ def capture_pipeline(loader):
 
 
 def run_scenario(name, device, workdir, **options):
-    """
-    Run one full scenario and return its fingerprint.
-
-    Each stage is captured separately so ``--compare`` can name the first one
-    that diverged instead of just reporting "different".
-    """
+    """Run one scenario and record each stage separately so --compare pinpoints the first divergence."""
     seed_all()
     loss_name = options.pop("loss")
     config, model, strategy, loader, base_dataset = build_scenario(
@@ -322,9 +299,7 @@ def run_scenario(name, device, workdir, **options):
 
     trainer.train(loader, os.path.join(workdir, name))
 
-    # Stage 4: final weights, plus logits on a fixed probe input. The probe is
-    # the artefact that matters most -- it is what the model will actually
-    # produce in production for a given image.
+    # Stage 4: final weights and logits on a fixed probe batch.
     post_train = {k: v.clone() for k, v in model.state_dict().items()}
     probe = torch.rand(4, 3, IMAGE_SIZE, IMAGE_SIZE,
                        generator=torch.Generator().manual_seed(SEED + 1)).to(device)
@@ -342,16 +317,7 @@ def run_scenario(name, device, workdir, **options):
     }
 
 
-# Each scenario exists to reach code the others cannot:
-#   triplet / arcface     -- the two production paths, multi-view, P*K vs shuffle
-#   triplet_singleview    -- the single-view branch of metric_learning_collate
-#   triplet_earlystop     -- both EarlyStopping branches and the early-stop
-#                            break path in RobustTrainer.train
-#   triplet_nometric      -- the warn-and-fall-back paths when the configured
-#                            checkpoint/early-stopping metric is absent
-#   build_triplet/arcface -- the real build_model_and_strategy: P*K batch-size
-#                            override, _build_dataloader_kwargs, label
-#                            encoding, dynamic margins, both head branches
+# Scenarios covering triplet/arcface, single-view, early stopping, missing metrics, and build_model_and_strategy.
 SCENARIOS = (
     ("triplet",            {"loss": "triplet"}),
     ("arcface",            {"loss": "arcface"}),
@@ -379,10 +345,7 @@ def run_all(device=torch.device("cpu")):
 # --- Comparison -----------------------------------------------------------
 
 def _diff(left, right, path=""):
-    """
-    Recursively compare two fingerprints. Returns a list of human-readable
-    difference descriptions; empty means bitwise identical.
-    """
+    """Recursively compare two fingerprints and return a list of differences."""
     if isinstance(left, dict):
         problems = []
         for key in sorted(set(left) | set(right)):
@@ -457,7 +420,7 @@ def report(baseline, current):
 
 
 def main():
-    """Entry point. See module docstring for the intended workflow."""
+    """Run the CLI to save, compare, or self-check training fingerprints."""
     parser = argparse.ArgumentParser(
         description="Verify the training pipeline behaves identically before "
                     "and after a change.")

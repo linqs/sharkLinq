@@ -68,7 +68,7 @@ TRAIN_ANNOTATIONS = "train-annotations.tsv"
 VALID_ANNOTATIONS = "valid-annotations.tsv"
 FULL_ANNOTATIONS = "full-annotations.tsv"
 
-# Committed immutable fixture used by the required application test suite.
+# Committed test fixture used by the application test suite.
 CI_TEST_DATA_DIR = os.path.join(TEST_DIR, "ci-test-data")
 CI_TEST_DATABASE_FORMAT_DIR = os.path.join(CI_TEST_DATA_DIR, "database-format", "database-format-test")
 
@@ -77,7 +77,7 @@ SHARK_APP_DIR = THIS_DIR
 
 
 def _resolve_inference_snapshot_root():
-    """Return the app-owned inference snapshot root."""
+    """Return the root folder where inference snapshots are stored."""
     configured_root = os.getenv("SHARK_INFERENCE_SNAPSHOT_ROOT")
     if configured_root:
         return os.path.abspath(os.path.expanduser(configured_root))

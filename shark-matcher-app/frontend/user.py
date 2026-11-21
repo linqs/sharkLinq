@@ -183,9 +183,7 @@ def filter_users(handler, path, **kwargs):
         keywords=kwargs["keywords"]
     )
 
-    # Shape the response to the caller's role. Viewers need id and name to attribute
-    # actions to people on the history and proposal tabs; only admins have a UI that
-    # shows usernames and roles, and nobody's UI shows an email from this endpoint.
+    # Only admins see usernames and roles; viewers only get IDs and names for attribution.
     requester = get_authenticated_user(handler)
     is_admin = (requester is not None
                 and role_dict.get(requester.role, 0) >= role_dict["admin"])

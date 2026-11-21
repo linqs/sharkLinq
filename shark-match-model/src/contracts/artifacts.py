@@ -1,4 +1,4 @@
-"""Strict V1 data-transfer models defining snapshot, generation, and status schemas."""
+"""Pydantic schemas for snapshot manifests, embedding generations, and model status."""
 
 from datetime import datetime
 from enum import Enum
@@ -33,14 +33,14 @@ class _StrictContractModel(BaseModel):
 
 
 class SnapshotFileV1(_StrictContractModel):
-    """Hashed CSV entry in a version-1 snapshot manifest."""
+    """Row count and SHA-256 checksum for one snapshot CSV."""
 
     rows: int = Field(ge=0)
     sha256: Sha256
 
 
 class SnapshotManifestV1(_StrictContractModel):
-    """Manifest for one app-owned immutable inference snapshot."""
+    """Manifest for an inference snapshot exported by the web app."""
 
     schema_version: Literal[SNAPSHOT_SCHEMA_VERSION]
     snapshot_id: str
@@ -50,33 +50,33 @@ class SnapshotManifestV1(_StrictContractModel):
     @field_validator("snapshot_id")
     @classmethod
     def validate_snapshot_id(cls, value):
-        """Require a canonical UUIDv4 snapshot identifier."""
+        """Require a lowercase UUIDv4 snapshot ID."""
         return canonical_uuid4(value, "snapshot_id")
 
     @field_validator("created_at")
     @classmethod
     def validate_created_at(cls, value):
-        """Require an explicit UTC creation timestamp."""
+        """Require a UTC timestamp ending in Z."""
         return _rfc3339_utc(value, "created_at")
 
     @field_validator("files")
     @classmethod
     def validate_files(cls, value):
-        """Require exactly the two public inference CSV files."""
+        """Require exactly individuals.csv and media.csv."""
         if set(value) != SNAPSHOT_FILENAMES:
             raise ValueError("files must contain exactly individuals.csv and media.csv")
         return value
 
 
 class ArtifactFileV1(_StrictContractModel):
-    """Hashed artifact entry in a version-1 generation manifest."""
+    """Byte size and SHA-256 checksum for one generation file."""
 
     size_bytes: int = Field(ge=0)
     sha256: Sha256
 
 
 class EmbeddingsMetadataV1(_StrictContractModel):
-    """Metadata stored inside a completed embedding generation."""
+    """Timing and ID metadata stored inside an embedding generation."""
 
     num_images: int = Field(ge=0)
     start_time: float
@@ -89,20 +89,20 @@ class EmbeddingsMetadataV1(_StrictContractModel):
     @field_validator("generation_id")
     @classmethod
     def validate_generation_id(cls, value):
-        """Require a canonical UUIDv4 generation identifier."""
+        """Require a lowercase UUIDv4 generation ID."""
         return canonical_uuid4(value, "generation_id")
 
     @field_validator("snapshot_id")
     @classmethod
     def validate_snapshot_id(cls, value):
-        """Validate the optional source snapshot identifier."""
+        """Validate the optional snapshot ID."""
         if value is None:
             return value
         return canonical_uuid4(value, "snapshot_id")
 
 
 class GenerationManifestV1(_StrictContractModel):
-    """Manifest for one complete immutable embedding generation."""
+    """Manifest for a completed embedding generation."""
 
     schema_version: Literal[GENERATION_SCHEMA_VERSION]
     generation_id: str
@@ -116,19 +116,19 @@ class GenerationManifestV1(_StrictContractModel):
     @field_validator("generation_id")
     @classmethod
     def validate_generation_id(cls, value):
-        """Require a canonical UUIDv4 generation identifier."""
+        """Require a lowercase UUIDv4 generation ID."""
         return canonical_uuid4(value, "generation_id")
 
     @field_validator("created_at")
     @classmethod
     def validate_created_at(cls, value):
-        """Require an explicit UTC creation timestamp."""
+        """Require a UTC timestamp ending in Z."""
         return _rfc3339_utc(value, "created_at")
 
     @field_validator("snapshot_id")
     @classmethod
     def validate_snapshot_id(cls, value):
-        """Validate the optional source snapshot identifier."""
+        """Validate the optional snapshot ID."""
         if value is None:
             return value
         return canonical_uuid4(value, "snapshot_id")
@@ -136,7 +136,7 @@ class GenerationManifestV1(_StrictContractModel):
     @field_validator("files")
     @classmethod
     def validate_files(cls, value):
-        """Require flat artifact names and embedded generation metadata."""
+        """Require flat filenames and include embeddings_metadata.json."""
         for filename in value:
             if (not filename or filename in {".", "..", "manifest.json"}
                     or "/" in filename or "\\" in filename):
@@ -147,7 +147,7 @@ class GenerationManifestV1(_StrictContractModel):
 
     @model_validator(mode="after")
     def validate_source(self):
-        """Keep the source type and optional snapshot identifier consistent."""
+        """Ensure snapshot_id is set if and only if source is snapshot."""
         if self.source == "snapshot" and self.snapshot_id is None:
             raise ValueError("snapshot_id is required when source is snapshot")
         if self.source == "offline_annotations" and self.snapshot_id is not None:
@@ -156,7 +156,7 @@ class GenerationManifestV1(_StrictContractModel):
 
 
 class GenerationPointerV1(_StrictContractModel):
-    """Atomic pointer to the active embedding generation."""
+    """Contents of current.json pointing to the active embedding generation."""
 
     schema_version: Literal[GENERATION_SCHEMA_VERSION]
     generation_id: str
@@ -165,18 +165,18 @@ class GenerationPointerV1(_StrictContractModel):
     @field_validator("generation_id")
     @classmethod
     def validate_generation_id(cls, value):
-        """Require a canonical UUIDv4 generation identifier."""
+        """Require a lowercase UUIDv4 generation ID."""
         return canonical_uuid4(value, "generation_id")
 
     @field_validator("published_at")
     @classmethod
     def validate_published_at(cls, value):
-        """Require an explicit UTC publication timestamp."""
+        """Require a UTC timestamp ending in Z."""
         return _rfc3339_utc(value, "published_at")
 
 
 class ModelState(str, Enum):
-    """Lifecycle states exposed by readiness and status responses."""
+    """Load states reported by the health and status endpoints."""
 
     NOT_ATTEMPTED = "not_attempted"
     LOADING = "loading"
@@ -226,7 +226,7 @@ class ModelSpec(_StrictContractModel):
     @model_validator(mode="before")
     @classmethod
     def _remap_legacy_fields(cls, data):
-        """Map legacy field names to contract fields."""
+        """Map older config keys (name, dir, model) to current field names."""
         if isinstance(data, dict):
             mapped = dict(data)
             if "display_name" not in mapped and "name" in mapped:
@@ -271,7 +271,7 @@ class ModelSpec(_StrictContractModel):
 
 
 def canonical_uuid4(value, field_name):
-    """Validate and return a canonical lowercase UUIDv4 string."""
+    """Validate that value is a lowercase UUIDv4 string."""
     if not isinstance(value, str):
         raise ValueError(f"{field_name} must be a canonical UUID string")
     try:

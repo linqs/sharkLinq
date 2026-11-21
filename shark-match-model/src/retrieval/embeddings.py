@@ -227,7 +227,7 @@ def main():
 def run_pipeline(model_name: str, embeddings_name: str,
                  args: argparse.Namespace, start_time: float,
                  maintenance_mode=None, source_snapshot=None):
-    """Build and publish one complete immutable embedding generation."""
+    """Build a new embedding generation and activate it via current.json."""
     if maintenance_mode not in {None, "dataset", "suggestions"}:
         raise ValueError(f"Unsupported maintenance mode: {maintenance_mode}")
 
@@ -814,10 +814,7 @@ def _run_multimodal_pipeline(
     # Build FusionDataset with default metadata spec (all six features).
     spec = metadata_features._resolve_metadata_spec(
         None, representation_b=False, representation_c=False)
-    # fit_split="all" so vocabularies and numeric ranges are computed from the
-    # full corpus.  fit_split="train" would produce empty stats when the
-    # stored_dataset has no train/test split (train_test=False annotation prep),
-    # causing zero-dim vocabulary groups and a degenerate alpha optimisation.
+    # Use fit_split="all" because stored_dataset may not have a train/test split.
     fusion_ds = fusion_dataset_mod.FusionDataset(
         stored_dataset, image_embeddings, spec, split=None, fit_split="all")
     slices = metadata_features._group_slices(spec, fusion_ds.norm_stats)

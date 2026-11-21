@@ -34,12 +34,12 @@ def _release_lock():
 
 
 def _generation_payload(model_name="miew"):
-    """Return the snapshot-only V1 embedding generation request."""
+    """Return a valid /embeddings/generate request payload."""
     return {"model_name": model_name, "snapshot_id": SNAPSHOT_ID}
 
 
 def _model_status(display_name, state, *, required=True, error=None):
-    """Return one immutable model-status fixture."""
+    """Build a ModelStatus instance for tests."""
     diagnostic = ModelDiagnostic(**error) if error is not None else None
     return ModelStatus(
         display_name=display_name,
@@ -64,9 +64,7 @@ def mock_retriever():
         "distances": [0.1, 0.5],
         "labels": [10, 20],
     }
-    # The generate endpoint resolves model_name -> config -> (dir, model) before
-    # calling the pipeline. With no configs registered, both fall back to the
-    # resolved name, which keeps the forwarding assertions readable.
+    # Without registered configs, dir and model both fall back to the resolved model name.
     r._resolve_model.side_effect = lambda name: name or 'miew'
     r.retrieval_methods = {0: None, 1: None, 2: None}
     r.allowed_models = {'miew'}
@@ -135,7 +133,7 @@ class TestHealth:
 
 
 class TestReadiness:
-    """Pin readiness decisions and reuse of Retriever model statuses."""
+    """Tests for /ready status codes and model_statuses output."""
 
     def test_all_required_models_ready_returns_200(self, client):
         """Readiness succeeds only when every required model is ready."""
@@ -204,7 +202,7 @@ class TestReadiness:
         assert response.json()["model_statuses"] == _status_payloads(statuses)
 
     def test_readiness_requires_service_credential(self, unauthenticated_client):
-        """Readiness follows the protected non-liveness route convention."""
+        """/ready requires a Bearer token."""
         c, _ = unauthenticated_client
 
         response = c.get("/ready")
@@ -297,7 +295,7 @@ class TestRealStartupMonitoring:
 # ---------------------------------------------------------------------------
 
 class TestServiceAuthenticationContract:
-    """Pin credential parsing, route coverage, and startup failure behavior."""
+    """Tests for Bearer token checks and startup API key validation."""
 
     @pytest.mark.parametrize(
         ("method", "path", "body"),
@@ -418,9 +416,7 @@ def test_correct_service_credential_preserves_protected_route_behavior(client):
 
 class TestMatch:
     def test_happy_path_returns_parallel_lists(self, client):
-        # The response is the retriever's own {ids, distances, labels} shape
-        # rather than the old list of {id, distance} objects; labels are now
-        # carried through instead of being dropped.
+        # Verify /match returns {ids, distances, labels} directly from the retriever.
         c, _ = client
         resp = c.post("/match", json={"image_id": 101})
         assert resp.status_code == 200
@@ -552,8 +548,7 @@ class TestStats:
 
 class TestEmbeddingsGenerate:
     def test_returns_ok(self, client):
-        # The endpoint is synchronous now, so a 200 means the pipeline finished
-        # rather than that it was scheduled.
+        # Synchronous generation returns 200 after the pipeline completes.
         c, _ = client
         with patch("src.api.server._run_embedding_pipeline"):
             resp = c.post("/embeddings/generate", json=_generation_payload())
@@ -699,7 +694,7 @@ class TestEmbeddingsGenerate:
 
     def test_success_reloads_every_view_sharing_the_published_directory(
             self, client):
-        """Hot reload occurs only after publication and covers shared views."""
+        """Reload every model view sharing the updated embedding directory."""
         c, mock_r = client
         mock_r._model_configs = {
             "image": {
@@ -730,7 +725,7 @@ class TestEmbeddingsGenerate:
         ]
 
     def test_failed_publication_does_not_reload_retriever(self, client):
-        """A publication error leaves the long-lived in-memory model untouched."""
+        """A pipeline error skips reloading the in-memory retriever."""
         c, mock_r = client
         mock_r._model_configs = {
             "miew": {
@@ -751,7 +746,7 @@ class TestEmbeddingsGenerate:
         mock_r._load_model_data.assert_not_called()
 
     def test_required_reload_failure_is_not_reported_as_success(self, client):
-        """A published generation is not healthy until required reload passes."""
+        """Return 500 if a required model fails to reload after generation."""
         c, mock_r = client
         mock_r._model_configs = {
             "miew": {
@@ -783,14 +778,14 @@ class TestEmbeddingsGenerate:
 
 
 class TestServerPipelineAdapter:
-    """Verify that server generation delegates to the shared CLI coordinator."""
+    """Tests for server._run_embedding_pipeline."""
 
     @patch("src.api.server.load_inference_snapshot")
     @patch("src.api.server.time.time", return_value=1_000.0)
     @patch("src.api.server._embeddings.run_pipeline")
     def test_snapshot_generation_validates_and_delegates_to_shared_pipeline(
             self, mock_run_pipeline, _mock_time, mock_load_snapshot):
-        """Server generation passes one validated snapshot to the coordinator."""
+        """Validate the snapshot and pass it to run_pipeline."""
         mock_run_pipeline.return_value = MagicMock(generation_id="generation-id")
         source_snapshot = mock_load_snapshot.return_value
 
@@ -819,7 +814,7 @@ class TestServerPipelineAdapter:
     @patch("src.api.server._embeddings.run_pipeline")
     def test_baseline_snapshot_generation_reuses_pipeline_configuration(
             self, mock_run_pipeline, _mock_time, mock_load_snapshot):
-        """Baseline snapshot generation retains the shared mode adapter."""
+        """Pass baseline mode flags to run_pipeline."""
         mock_run_pipeline.return_value = MagicMock(generation_id="generation-id")
 
         server._run_embedding_pipeline(
@@ -842,7 +837,7 @@ class TestServerPipelineAdapter:
     @patch("src.api.server._embeddings.run_pipeline")
     def test_invalid_snapshot_stops_before_generation_preparation(
             self, mock_run_pipeline, _mock_load_snapshot):
-        """Unvalidated request data cannot reach the artifact builders."""
+        """Stop before run_pipeline when snapshot loading fails."""
         with pytest.raises(ValueError, match="invalid snapshot"):
             server._run_embedding_pipeline(
                 "embedding-set", "trained-model", SNAPSHOT_ID, "baseline"
@@ -862,11 +857,7 @@ class TestGenerationLockRelease:
         assert not server._generation_lock.locked()
 
     def test_lock_released_after_pipeline_error(self, client):
-        """A failing pipeline must not wedge the endpoint.
-
-        Without the `finally`, one raised exception would leave the lock held
-        and every later request would 503 forever.
-        """
+        """Release the generation lock even when the pipeline raises an error."""
         c, _ = client
         with patch("src.api.server._run_embedding_pipeline",
                    side_effect=RuntimeError("disk full")):

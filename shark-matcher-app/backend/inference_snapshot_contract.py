@@ -1,8 +1,4 @@
-"""Standard-library builder for the app-owned V1 snapshot manifest.
-
-Database reads and filesystem publication belong to the V1.2 implementation;
-this module only constructs the strict cross-repository wire representation.
-"""
+"""Build and validate the JSON manifest for an inference snapshot."""
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -18,7 +14,7 @@ _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
 def canonical_snapshot_id(value):
-    """Validate and return a canonical lowercase UUIDv4 snapshot ID."""
+    """Validate that a snapshot ID is a lowercase UUIDv4 string."""
     if not isinstance(value, str):
         raise ValueError("snapshot_id must be a canonical UUID string")
     try:
@@ -31,7 +27,7 @@ def canonical_snapshot_id(value):
 
 
 def format_utc_timestamp(value):
-    """Format an aware datetime as an RFC 3339 UTC timestamp ending in Z."""
+    """Convert a timezone-aware datetime to a UTC timestamp string ending in Z."""
     if not isinstance(value, datetime) or value.utcoffset() is None:
         raise ValueError("created_at must be a timezone-aware datetime")
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -39,25 +35,25 @@ def format_utc_timestamp(value):
 
 @dataclass(frozen=True)
 class SnapshotFile:
-    """Row count and content digest for one snapshot CSV file."""
+    """Row count and SHA-256 checksum for a single snapshot CSV file."""
 
     rows: int
     sha256: str
 
     def __post_init__(self):
-        """Validate the immutable file entry after construction."""
+        """Validate the row count and SHA-256 checksum."""
         if isinstance(self.rows, bool) or not isinstance(self.rows, int) or self.rows < 0:
             raise ValueError("rows must be a non-negative integer")
         if not isinstance(self.sha256, str) or not _SHA256_PATTERN.fullmatch(self.sha256):
             raise ValueError("sha256 must be a lowercase hexadecimal SHA-256 digest")
 
     def as_dict(self):
-        """Return the JSON-serializable file entry."""
+        """Return the file metadata as a plain dictionary."""
         return {"rows": self.rows, "sha256": self.sha256}
 
 
 def build_snapshot_manifest(snapshot_id, created_at, files: Mapping[str, SnapshotFile]):
-    """Build a strict version-1 manifest without performing any I/O."""
+    """Build and validate the manifest dictionary for a snapshot."""
     canonical_id = canonical_snapshot_id(snapshot_id)
     if set(files) != SNAPSHOT_FILENAMES:
         raise ValueError("files must contain exactly individuals.csv and media.csv")
