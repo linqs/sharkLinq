@@ -13,6 +13,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: shark-match-model
 
     steps:
       - uses: actions/checkout@v4
@@ -21,7 +24,7 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: requirements/*.txt
+          cache-dependency-path: shark-match-model/requirements/*.txt
       - name: Install Linux CPU PyTorch
         if: runner.os == 'Linux'
         run: >-
@@ -54,6 +57,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: shark-match-model
 
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +68,7 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: requirements/*.txt
+          cache-dependency-path: shark-match-model/requirements/*.txt
       - name: Install Linux CPU PyTorch
         if: runner.os == 'Linux'
         run: >-

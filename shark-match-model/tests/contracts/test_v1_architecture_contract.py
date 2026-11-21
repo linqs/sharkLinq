@@ -712,11 +712,12 @@ def test_matcher_runner_requests_pytest_skip_summary():
 def test_matcher_workflow_uses_supported_matrix_and_owned_commands():
     """CI workflow runs the repo test runner across Linux and macOS."""
     workflow_source = (
-        MATCHER_ROOT / ".github/workflows/python-tests.yml"
+        MATCHER_ROOT.parent / ".github/workflows/matcher-tests.yml"
     ).read_text(encoding="utf-8")
 
     assert "actions/checkout@v4" in workflow_source
     assert "actions/setup-python@v5" in workflow_source
+    assert "working-directory: shark-match-model" in workflow_source
     assert workflow_source.count("os: [ubuntu-latest, macos-latest]") == 2
     assert "python -m tests.tools.run_tests\n" in workflow_source
     assert "python -m tests.tools.run_tests --py-style" in workflow_source

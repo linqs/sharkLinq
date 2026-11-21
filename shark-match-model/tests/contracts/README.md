@@ -39,4 +39,4 @@ The standard runner (`python3 -m tests.tools.run_tests`) includes this folder.
 
 - Tests need no `sm-data` directory, trained model, or database; they build their data in temporary directories.
 - Packaging tests copy the repository into a temporary directory and build a wheel and a source archive, so they are slower than unit tests.
-- These tests read `src/`, `setup.py`, `requirements/`, `.github/workflows/python-tests.yml`, and the Markdown files, so edits there can fail them.
+- These tests read `src/`, `setup.py`, `requirements/`, `../.github/workflows/matcher-tests.yml`, and the Markdown files, so edits there can fail them.

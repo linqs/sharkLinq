@@ -404,8 +404,9 @@ function buildProposalItem(proposal, context) {
   const proposalTime = Util.timestampToString(proposal.time);
   const proposalIDs = {};
   for (const type of ['original', 'final']) {
-    proposalIDs[type] = (proposal[type] !== -1 && proposal[type] !== null && proposal[type] !== undefined)
-      ? proposal[type] : 'Empty';
+    const value = proposal[type];
+    proposalIDs[type] = (value !== -1 && value !== null && value !== undefined) ?
+      value : 'Empty';
   }
   const {original: proposalOriginal, final: proposalFinal} = proposalIDs;
   const resultDescription = Util.renderResultDescription(proposal.notes);

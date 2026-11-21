@@ -351,11 +351,13 @@ def test_app_runner_does_not_filter_explicit_tests_target():
 def test_app_workflow_uses_supported_matrix_and_owned_commands():
     """Check that the GitHub Actions workflow runs the test runner across supported OSes."""
     workflow_source = (
-        APP_ROOT / ".github/workflows/python-tests.yml"
+        APP_ROOT.parent / ".github/workflows/app-tests.yml"
     ).read_text(encoding="utf-8")
 
     assert "actions/checkout@v4" in workflow_source
     assert "actions/setup-python@v5" in workflow_source
+    assert "working-directory: shark-matcher-app" in workflow_source
+    assert "shark-matcher-app/test-results/" in workflow_source
     assert workflow_source.count("os: [ubuntu-latest, macos-latest]") == 2
     assert "python -m tests.tools.run_tests\n" in workflow_source
     assert "python -m tests.tools.run_tests --browser" in workflow_source

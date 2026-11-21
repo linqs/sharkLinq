@@ -455,10 +455,10 @@ function renderResultDescription(actionNotes) {
     parsedNotes = actionNotes;
   }
 
-  const original = (parsedNotes.original && typeof parsedNotes.original === 'object')
-    ? parsedNotes.original : null;
-  const final = (parsedNotes.final && typeof parsedNotes.final === 'object')
-    ? parsedNotes.final : null;
+  const original = (parsedNotes.original && typeof parsedNotes.original === 'object') ?
+    parsedNotes.original : null;
+  const final = (parsedNotes.final && typeof parsedNotes.final === 'object') ?
+    parsedNotes.final : null;
   const skipKeys = ['source', 'media', 'individual'];
   const descriptions = {};
 
@@ -493,7 +493,8 @@ function renderResultDescription(actionNotes) {
         }
 
         // Check if only one of original or final contains this key
-        const originalHasKey = Boolean(original) && Object.prototype.hasOwnProperty.call(original, key);
+        const originalHasKey = Boolean(original) &&
+            Object.prototype.hasOwnProperty.call(original, key);
         const finalHasKey = Boolean(final) && Object.prototype.hasOwnProperty.call(final, key);
         const onlyOneHasKey = (originalHasKey && !finalHasKey) || (!originalHasKey && finalHasKey);
 

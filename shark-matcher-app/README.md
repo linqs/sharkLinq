@@ -400,7 +400,6 @@ shark-matcher-app/
 ├── containerization/         # deferred container design placeholder
 ├── config/                   # tool configuration (pylintrc)
 ├── requirements/             # requirement sets used by setup.py, CI and Docker
-├── .github/                  # CI workflow definitions
 ├── setup.py                  # package and optional-dependency metadata
 └── MANIFEST.in               # source-archive file list
 ```
